@@ -1,0 +1,26 @@
+{
+  "name": "gwt",
+  "version": "0.0.1",
+  "description": "Given, when, then",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tristanstraub/gwt"
+  },
+  "author": "Tristan Straub",
+  "license": "MIT",
+  "dependencies": {
+    "lodash": "^3.5.0"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.9.1",
+    "mocha": "^2.2.1",
+    "sinon": "^1.14.0",
+    "q": ">=1.0.1",
+    "cbw": "0.0.1",
+    "async": ">=0.2.9"
+  }
+}
