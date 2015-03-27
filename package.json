@@ -1,6 +1,6 @@
 {
   "name": "gwt",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Given, when, then",
   "main": "lib/index.js",
   "scripts": {
@@ -15,12 +15,14 @@
   "dependencies": {
     "lodash": "^3.5.0"
   },
-  "devDependencies": {
-    "coffee-script": "^1.9.1",
-    "mocha": "^2.2.1",
-    "sinon": "^1.14.0",
+  "dependencies": {
     "q": ">=1.0.1",
     "cbw": "0.0.1",
     "async": ">=0.2.9"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.9.1",
+    "mocha": "^2.2.1",
+    "sinon": "^1.14.0"
   }
 }
