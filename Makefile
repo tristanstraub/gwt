@@ -16,6 +16,12 @@ test:
 		--require coffee-script/register \
 		test/*.coffee
 
+test-watch:
+	@./node_modules/mocha/bin/mocha \
+		--require coffee-script/register \
+		-w \
+		test/*.coffee
+
 publish: test build
 	tar -zcvf ./gwt-$(VERSION).tgz -C .. gwt/package.json gwt/lib
 	npm publish ./gwt-$(VERSION).tgz
