@@ -204,7 +204,13 @@ describe 'bdd', ->
       {steps: steps3} = feature3
 
       run1.run ce ->
+        assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 1
+        assert.equal steps2.WHEN['something is done ${action}'].callCount, 1
+        assert.equal steps3.THEN['something should have happened'].callCount, 1
         run1.run ce ->
+          assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 2
+          assert.equal steps2.WHEN['something is done ${action}'].callCount, 2
+          assert.equal steps3.THEN['something should have happened'].callCount, 2
           run1.run ce ->
             assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 3
             assert.equal steps2.WHEN['something is done ${action}'].callCount, 3
