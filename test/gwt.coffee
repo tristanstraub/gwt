@@ -185,6 +185,33 @@ describe 'bdd', ->
         assert steps2.THEN['the second context'].called, 'Third feature steps not called'
         done()
 
+  describe 'combine() descriptions', ->
+    features = ->
+      feature1: declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition': ->
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition'
+
+      feature2: declareStepsAndScenario
+        steps:
+          WHEN: 'something is done': ->
+
+        scenario: (runner) ->
+          runner
+            .when('something is done')
+
+
+    it 'should run one step after the other', (done) ->
+      ce = cbw done
+      {feature1, feature2} = features()
+
+      feature1.combine(feature2).run ce ({bddIt}) ->
+        assert.equal bddIt.getCall(0).args[0], 'Given a condition, when something is done'
+        done()
+
   describe 'combine()', ->
     features = ->
       feature1: declareStepsAndScenario

@@ -100,6 +100,8 @@ buildDescription = (fullDescription = '') ->
     buildDescription "#{fullDescription}, when #{interpolate rest, args}"
   then: (rest, args) -> buildDescription "#{fullDescription}, then #{interpolate rest, args}"
   get: -> fullDescription
+  combine: (nextDescription) ->
+    buildDescription "#{fullDescription}#{nextDescription.get()}"
 
 resolveResultArgs = (context, args) ->
   argsCopy = _.clone args
@@ -172,6 +174,7 @@ describeScenario = (spec, {only, counts}) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
+    descriptionBuilder: descriptionBuilder
     crossCombineResults: crossCombineResults
 
     resultTo: (result) ->
@@ -211,7 +214,7 @@ describeScenario = (spec, {only, counts}) ->
 
         rightBdd.promiseBuilder.resolve(newContext)
 
-      return bdd(descriptionBuilder, nextPromiseBuilder)
+      return bdd(descriptionBuilder.combine(rightBdd.descriptionBuilder), nextPromiseBuilder)
 
     done: ({it: bddIt} = {}) ->
       bddIt ?= global.it
