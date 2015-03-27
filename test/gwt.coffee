@@ -108,7 +108,10 @@ describe 'bdd', ->
             .then 'with the result', ({result1, result2})
 
     it 'should resolve the result object before passing to the next step', (done) ->
-      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).run done
+      ce = cbw done
+      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).run ce ->
+        assert steps.THEN['with the result'].called
+        done()
 
   describe 'combine()', ->
     features = ->
