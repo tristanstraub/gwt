@@ -91,6 +91,37 @@ buildDescription = (fullDescription = '') ->
   then: (rest, args) -> buildDescription "#{fullDescription}, then #{interpolate rest, args}"
   get: -> fullDescription
 
+deepPromiseResolve = (object) ->
+  Q(object).then (object) ->
+    if !object then return
+    if typeof object isnt 'object' then return object
+    if object instanceof Date then return object
+    if object instanceof RegExp then return object
+
+    deferred = Q.defer()
+    promise = deferred.promise
+
+    if Array.isArray(object)
+      # Rewrite with reduce
+      for key in [0...object.length]
+        do (key, value = object[key]) ->
+          promise = promise.then ->
+            deepPromiseResolve(value).then (innerValue) ->
+              object[key] = innerValue
+    else
+      # Rewrite with reduce
+      for key, value of object
+        do (key, value) ->
+          promise = promise.then ->
+            deepPromiseResolve(value).then (innerValue) ->
+              object[key] = innerValue
+
+    promise = promise.then -> return object
+
+    deferred.resolve()
+
+    return promise
+
 describeScenario = (spec, {only, counts}) ->
   {GIVEN, WHEN, THEN, DONE} = spec
 
@@ -101,12 +132,14 @@ describeScenario = (spec, {only, counts}) ->
       # Isolate from previous context. Not sure this is useful currently.
       newContext = _.extend {}, context, extraContext
       newContext.updateContext()
-      Q(fn.apply newContext, args).then (result) ->
-        # Pipe result to resultTo
-        newContext._last_result = result
-        counts[name].called description
-        # fn mutated context
-        newContext
+      # resolve promises contained in args. Use inplace replacement for the moment.
+      deepPromiseResolve(args).then (args) ->
+        Q(fn.apply newContext, args).then (result) ->
+          # Pipe result to resultTo
+          newContext._last_result = result
+          counts[name].called description
+          # fn mutated context
+          newContext
 
   getGiven = getter 'GIVEN', GIVEN
   getWhen = getter 'WHEN', WHEN
