@@ -113,6 +113,42 @@ describe 'bdd', ->
         assert steps.THEN['with the result'].called
         done()
 
+  describe 'resultTo with combine', ->
+    features = ->
+      result = bdd.result()
+
+      feature1: declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition': sinon.spy ->
+            return 'a result'
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition'
+            .resultTo result
+
+      feature2: declareStepsAndScenario
+        steps:
+          THEN: 'the second context': sinon.spy ({result}) ->
+            assert.equal result, 'a result'
+
+        scenario: (runner) ->
+          runner
+            .then 'the second context', {result}
+
+    it 'should cross combine', (done) ->
+      ce = cbw done
+      {feature1, feature2} = features()
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+
+      feature1.combine(feature2).run ce ->
+        assert steps1.GIVEN['a condition'].called, 'First feature steps not called'
+        assert steps2.THEN['the second context'].called, 'Third feature steps not called'
+        done()
+
+
   describe 'combine() context', ->
     features = ->
       feature1: declareStepsAndScenario

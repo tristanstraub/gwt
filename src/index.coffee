@@ -133,6 +133,7 @@ describeScenario = (spec, {only, counts}) ->
   {GIVEN, WHEN, THEN, DONE} = spec
 
   lastResult = makeResult()
+  crossCombineResults = makeResult()
 
   getter = (name, collection) -> (description) ->
     fn = collection[description]
@@ -142,8 +143,7 @@ describeScenario = (spec, {only, counts}) ->
       newContext = _.extend {}, context, extraContext
       newContext.updateContext()
       # resolve promises contained in args. Use inplace replacement for the moment.
-      args = resolveResultArgs(context, args)
-      Q(fn.apply newContext, args).then (result) ->
+      Q(fn.apply newContext, resolveResultArgs(crossCombineResults.get(context) ? {}, args)).then (result) ->
         # Pipe result to resultTo
         # TODO use Result for this
         lastResult.set(newContext, result)
@@ -172,13 +172,16 @@ describeScenario = (spec, {only, counts}) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
+    crossCombineResults: crossCombineResults
 
     resultTo: (result) ->
       assert result, 'Result must be a promiseBuilder. Create one with bdd.result()'
 
       bdd(descriptionBuilder,
         promiseBuilder.then (context) ->
-          result.set context, lastResult.get(context)
+          results = crossCombineResults.get(context) ? {}
+          result.set results, lastResult.get(context)
+          crossCombineResults.set context, results
           context)
 
     given: (description, args...) ->
@@ -203,7 +206,10 @@ describeScenario = (spec, {only, counts}) ->
       nextPromiseBuilder = promiseBuilder.then (context) ->
         currentContext = null
         updateContext = -> currentContext = this
-        rightBdd.promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
+        newContext = {getContext: (-> currentContext), updateContext}
+        rightBdd.crossCombineResults.set newContext, crossCombineResults.get context
+
+        rightBdd.promiseBuilder.resolve(newContext)
 
       return bdd(descriptionBuilder, nextPromiseBuilder)
 
