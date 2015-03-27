@@ -113,6 +113,42 @@ describe 'bdd', ->
         assert steps.THEN['with the result'].called
         done()
 
+  describe 'combine() context', ->
+    features = ->
+      feature1: declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition': sinon.spy ->
+            @value = 'a value'
+          THEN: 'the first context': sinon.spy ->
+            assert.equal @value, 'a value'
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition'
+            .then 'the first context'
+
+      feature2: declareStepsAndScenario
+        steps:
+          THEN: 'the second context': sinon.spy ->
+            assert !@value
+
+        scenario: (runner) ->
+          runner
+            .then('the second context')
+
+    it 'should not leak context across combine', (done) ->
+      ce = cbw done
+      {feature1, feature2} = features()
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+
+      feature1.combine(feature2).run ce ->
+        assert steps1.GIVEN['a condition'].called, 'First feature steps not called'
+        assert steps1.THEN['the first context'].called, 'Second feature steps not called'
+        assert steps2.THEN['the second context'].called, 'Third feature steps not called'
+        done()
+
   describe 'combine()', ->
     features = ->
       feature1: declareStepsAndScenario
