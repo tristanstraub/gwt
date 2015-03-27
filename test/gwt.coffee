@@ -141,10 +141,8 @@ describe 'bdd', ->
 
 
   describe 'combine()', ->
-    it 'should run one set of steps after the other', (done) ->
-      ce = cbw done
-
-      feature1 = declareStepsAndScenario
+    features = ->
+      feature1: declareStepsAndScenario
         steps:
           GIVEN: 'a condition ${condition}': sinon.spy ({@condition}) ->
 
@@ -152,7 +150,7 @@ describe 'bdd', ->
           runner
             .given 'a condition ${condition}', condition: 'one'
 
-      feature2 = declareStepsAndScenario
+      feature2: declareStepsAndScenario
         steps:
           WHEN: 'something is done ${action}': sinon.spy ({@action}) ->
             return "(#{@action})"
@@ -161,7 +159,7 @@ describe 'bdd', ->
           runner
             .when('something is done ${action}', action: 'two')
 
-      feature3 = declareStepsAndScenario
+      feature3: declareStepsAndScenario
         steps:
           THEN: 'something should have happened': sinon.spy ->
 
@@ -169,18 +167,50 @@ describe 'bdd', ->
           runner
             .then 'something should have happened'
 
+    it 'should run one step after the other', (done) ->
+      ce = cbw done
+      {feature1, feature2} = features()
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+
+      feature1.combine(feature2).run ce ->
+        assert steps1.GIVEN['a condition ${condition}'].called, 'First feature steps not called'
+        assert steps2.WHEN['something is done ${action}'].called, 'Second feature steps not called'
+        done()
+
+    it 'should run one set of steps after the other', (done) ->
+      ce = cbw done
+      {feature1, feature2, feature3} = features()
+
       {steps: steps1} = feature1
       {steps: steps2} = feature2
       {steps: steps3} = feature3
 
       feature1.combine(feature2, feature3).run ce ->
-        try
-          assert steps1.GIVEN['a condition ${condition}'].called, 'First feature steps not called'
-          assert steps2.WHEN['something is done ${action}'].called, 'Second feature steps not called'
-          assert steps3.THEN['something should have happened'].called, 'Third feature steps not called'
-        catch e
-          return done e
+        assert steps1.GIVEN['a condition ${condition}'].called, 'First feature steps not called'
+        assert steps2.WHEN['something is done ${action}'].called, 'Second feature steps not called'
+        assert steps3.THEN['something should have happened'].called, 'Third feature steps not called'
         done()
+
+    it 'should not execute promises more than once when features are reused', (done) ->
+      ce = cbw done
+      {feature1, feature2, feature3} = features()
+
+      run1 = feature1.combine(feature2).combine(feature3)
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+      {steps: steps3} = feature3
+
+      run1.run ce ->
+        run1.run ce ->
+          run1.run ce ->
+            assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 3
+            assert.equal steps2.WHEN['something is done ${action}'].callCount, 3
+            assert.equal steps3.THEN['something should have happened'].callCount, 3
+
+            done()
 
 
   describe 'with context', ->
@@ -215,23 +245,22 @@ createTestContext = ->
   return {bddIt, tests, run}
 
 
-buildTestRunner = ({runner, steps, run}) ->
+buildTestRunner = ({runner, steps}) ->
   assert runner, 'Runner not defined'
+  assert steps
 
   return {
     steps
     runner
 
-    run: (cb) -> run {runner}, cb
+    run: (cb) ->
+      {run} = createTestContext()
+
+      run {runner}, cb
 
     combine: (suffixRunners...) ->
-      return buildTestRunner {runner: bdd.combine(runner, suffixRunners.map((s) -> s.runner)...), steps, run}
+      return buildTestRunner {steps, runner: bdd.combine(runner, suffixRunners.map((s) -> s.runner)...)}
   }
 
 declareStepsAndScenario = ({steps, scenario}) ->
-  do (bddIt = null, tests = null) ->
-    {run, bddIt, tests} = createTestContext()
-
-    runner = scenario(bdd.accordingTo(-> steps).getRunner())
-
-    return buildTestRunner {runner, steps, run}
+  return buildTestRunner {steps, runner: scenario(bdd.accordingTo(-> steps).getRunner())}

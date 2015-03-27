@@ -4,6 +4,8 @@
 Q = require 'q'
 _ = require 'lodash'
 assert = require 'assert'
+I = require 'immutable'
+
 
 exports.result = ->
   deferredBuilder = Q.defer()
@@ -133,7 +135,7 @@ describeScenario = (spec, {only, counts}) ->
     fn = collection[description]
     if !fn then throw new Error "'#{name}' doesn't contain '#{description}'"
     return (context, extraContext, args) ->
-      # Isolate from previous context. Not sure this is useful currently.
+      # Isolate from previous context.
       newContext = _.extend {}, context, extraContext
       newContext.updateContext()
       # resolve promises contained in args. Use inplace replacement for the moment.
@@ -149,15 +151,22 @@ describeScenario = (spec, {only, counts}) ->
   getWhen = getter 'WHEN', WHEN
   getThen = getter 'THEN', THEN
 
-  deferred = Q.defer()
-  deferredBuilder =
-    promiseBuilder: deferred.promise
-    resolve: (args...) -> deferred.resolve args...
+  promiseBuilderFactory = ({chain} = {chain:  I.List()}) ->
+    return {
+      then: (fn) ->
+        return promiseBuilderFactory chain: chain.push fn
+
+      resolve: (args...) ->
+        deferred = Q.defer()
+        deferred.resolve args...
+        promise = deferred.promise
+        chain.forEach (thenFn) -> promise = promise.then thenFn
+        return promise
+    }
 
   bdd = (descriptionBuilder, promiseBuilder) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
     # Used by combine for chaining
-    deferredBuilder: deferredBuilder
     promiseBuilder: promiseBuilder
 
     resultTo: (result) ->
@@ -165,7 +174,6 @@ describeScenario = (spec, {only, counts}) ->
 
       bdd(descriptionBuilder,
         promiseBuilder.then (context) ->
-          console.log 'resolve', context._last_result
           result.resolve context._last_result
           context)
 
@@ -188,12 +196,12 @@ describeScenario = (spec, {only, counts}) ->
       assert rightBdd, 'right bdd not defined'
 
       # TODO chain promiseBuilders after done is called
-      promiseBuilder.then (context) ->
+      nextPromiseBuilder = promiseBuilder.then (context) ->
         currentContext = null
         updateContext = -> currentContext = this
-        rightBdd.deferredBuilder.resolve({getContext: (-> currentContext), updateContext})
+        rightBdd.promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
 
-      return bdd(descriptionBuilder, rightBdd.promiseBuilder)
+      return bdd(descriptionBuilder, nextPromiseBuilder)
 
     done: ({it: bddIt} = {}) ->
       bddIt ?= global.it
@@ -204,15 +212,13 @@ describeScenario = (spec, {only, counts}) ->
           spec.done?()
           done()
 
-        promiseBuilder
-          .then finish
-          .fail done
-
         currentContext = null
         updateContext = -> currentContext = this
-        deferredBuilder.resolve({getContext: (-> currentContext), updateContext})
+        promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
+          .then(finish)
+          .fail(done)
 
-  return bdd(buildDescription(), deferredBuilder.promiseBuilder)
+  return bdd(buildDescription(), promiseBuilderFactory())
 
 interpolate = (description, args) ->
   kw = _.last(args)
