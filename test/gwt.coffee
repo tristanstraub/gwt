@@ -90,28 +90,6 @@ describe 'bdd', ->
         assert.equal onCalled.then, true
         done()
 
-
-  describe 'with resultTo', ->
-    feature = (result) ->
-      return declareStepsAndScenario
-        steps:
-          GIVEN: {}
-          WHEN: 'something is done ${action}': ({@action}) ->
-            return "(#{@action})"
-          THEN: {}
-
-        scenario: (runner) ->
-          runner
-            .when('something is done ${action}', action: 'two').resultTo(result)
-
-    it 'should push result to result object', (done) ->
-      feature(result = bdd.result()).run cbw(done) ->
-        result
-          .then (resultValue) ->
-            assert.equal resultValue, '(two)'
-            done()
-          .fail done
-
   describe 'with resultTo', ->
     feature = (result1, result2) ->
       return declareStepsAndScenario
@@ -130,13 +108,7 @@ describe 'bdd', ->
             .then 'with the result', ({result1, result2})
 
     it 'should resolve the result object before passing to the next step', (done) ->
-      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).run cbw(done) ->
-        result
-          .then (resultValue) ->
-            assert steps.THEN['with the result'].called
-            done()
-          .fail done
-
+      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).run done
 
   describe 'combine()', ->
     features = ->

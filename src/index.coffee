@@ -5,16 +5,20 @@ Q = require 'q'
 _ = require 'lodash'
 assert = require 'assert'
 I = require 'immutable'
+uuid = require 'node-uuid'
 
+class Result
+  constructor: (@id) ->
+    assert @id, 'Result id not given'
 
-exports.result = ->
-  deferredBuilder = Q.defer()
-  return {
-    resolve: (args...) -> deferredBuilder.resolve args...
-    then: (args...) -> deferredBuilder.promise.then args...
-    fail: (args...) -> deferredBuilder.promise.fail args...
-  }
+  get: (context) ->
+    return context[@id]
 
+  set: (context, value) ->
+    context[@id] = value
+
+exports.result = makeResult = (id = uuid.v4())->
+  return new Result(id)
 
 exports.combine = (leftRunner, rightRunner, rest...) ->
   assert leftRunner, 'left runner not defined'
@@ -97,39 +101,38 @@ buildDescription = (fullDescription = '') ->
   then: (rest, args) -> buildDescription "#{fullDescription}, then #{interpolate rest, args}"
   get: -> fullDescription
 
-deepPromiseResolve = (object) ->
-  Q(object).then (object) ->
-    if !object then return
-    if typeof object isnt 'object' then return object
-    if object instanceof Date then return object
-    if object instanceof RegExp then return object
+resolveResultArgs = (context, args) ->
+  argsCopy = _.clone args
 
-    deferred = Q.defer()
-    promise = deferred.promise
+  for i in [0...argsCopy.length]
+    argsCopy[i] = resolveResults(context, argsCopy[i])
 
-    if Array.isArray(object)
-      # Rewrite with reduce
-      for key in [0...object.length]
-        do (key, value = object[key]) ->
-          promise = promise.then ->
-            deepPromiseResolve(value).then (innerValue) ->
-              object[key] = innerValue
-    else
-      # Rewrite with reduce
-      for key, value of object
-        do (key, value) ->
-          promise = promise.then ->
-            deepPromiseResolve(value).then (innerValue) ->
-              object[key] = innerValue
+  return argsCopy
 
-    promise = promise.then -> return object
+resolveResults = (context, object) ->
+  if !object then return
+  if typeof object isnt 'object' then return object
+  if object instanceof Date then return object
+  if object instanceof RegExp then return object
 
-    deferred.resolve()
+  objectCopy = _.clone object
 
-    return promise
+  if Array.isArray(objectCopy)
+    for i in [0...objectCopy.length]
+      result = objectCopy[i]
+      if result instanceof Result then objectCopy[i] = result.get(context)
+
+    return objectCopy
+
+  for key, result of objectCopy
+    if result instanceof Result then objectCopy[key] = result.get(context)
+
+  return objectCopy
 
 describeScenario = (spec, {only, counts}) ->
   {GIVEN, WHEN, THEN, DONE} = spec
+
+  lastResult = makeResult()
 
   getter = (name, collection) -> (description) ->
     fn = collection[description]
@@ -139,13 +142,14 @@ describeScenario = (spec, {only, counts}) ->
       newContext = _.extend {}, context, extraContext
       newContext.updateContext()
       # resolve promises contained in args. Use inplace replacement for the moment.
-      deepPromiseResolve(args).then (args) ->
-        Q(fn.apply newContext, args).then (result) ->
-          # Pipe result to resultTo
-          newContext._last_result = result
-          counts[name].called description
-          # fn mutated context
-          newContext
+      args = resolveResultArgs(context, args)
+      Q(fn.apply newContext, args).then (result) ->
+        # Pipe result to resultTo
+        # TODO use Result for this
+        lastResult.set(newContext, result)
+        counts[name].called description
+        # fn mutated context
+        newContext
 
   getGiven = getter 'GIVEN', GIVEN
   getWhen = getter 'WHEN', WHEN
@@ -174,7 +178,7 @@ describeScenario = (spec, {only, counts}) ->
 
       bdd(descriptionBuilder,
         promiseBuilder.then (context) ->
-          result.resolve context._last_result
+          result.set context, lastResult.get(context)
           context)
 
     given: (description, args...) ->
