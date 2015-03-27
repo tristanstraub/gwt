@@ -18,6 +18,7 @@
     "cbw": "0.0.1",
     "immutable": "^3.7.0",
     "lodash": "^3.5.0",
+    "node-uuid": "^1.4.3",
     "q": ">=1.0.1"
   },
   "devDependencies": {
