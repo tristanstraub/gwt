@@ -1,6 +1,6 @@
 {
   "name": "gwt",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Given, when, then",
   "main": "lib/index.js",
   "scripts": {
