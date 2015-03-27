@@ -203,9 +203,10 @@ describeScenario = (spec, {only, counts}) ->
         finish = ->
           spec.done?()
           done()
-        promiseBuilder.then (-> done()), ((err) ->
-          console.error err.stack
-          done err)
+
+        promiseBuilder
+          .then finish
+          .fail done
 
         currentContext = null
         updateContext = -> currentContext = this
