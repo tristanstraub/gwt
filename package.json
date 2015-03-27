@@ -14,10 +14,11 @@
   "author": "Tristan Straub",
   "license": "MIT",
   "dependencies": {
-    "q": ">=1.0.1",
-    "cbw": "0.0.1",
     "async": ">=0.2.9",
-    "lodash": "^3.5.0"
+    "cbw": "0.0.1",
+    "immutable": "^3.7.0",
+    "lodash": "^3.5.0",
+    "q": ">=1.0.1"
   },
   "devDependencies": {
     "coffee-script": "^1.9.1",
