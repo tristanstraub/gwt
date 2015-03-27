@@ -306,4 +306,6 @@ buildTestRunner = ({runner, steps}) ->
   }
 
 declareStepsAndScenario = ({steps, scenario}) ->
+  assert steps
+  assert scenario
   return buildTestRunner {steps, runner: scenario(bdd.accordingTo(-> steps).getRunner())}
