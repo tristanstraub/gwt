@@ -173,7 +173,7 @@ describe 'bdd', ->
       {steps: steps2} = feature2
       {steps: steps3} = feature3
 
-      feature1.combine(feature2).combine(feature3).run ce ->
+      feature1.combine(feature2, feature3).run ce ->
         try
           assert steps1.GIVEN['a condition ${condition}'].called, 'First feature steps not called'
           assert steps2.WHEN['something is done ${action}'].called, 'Second feature steps not called'
@@ -224,9 +224,8 @@ buildTestRunner = ({runner, steps, run}) ->
 
     run: (cb) -> run {runner}, cb
 
-    combine: (suffixRunner) ->
-      assert suffixRunner.runner, 'SuffixRunner.runner not defined'
-      return buildTestRunner {runner: bdd.combine(runner, suffixRunner.runner), steps, run}
+    combine: (suffixRunners...) ->
+      return buildTestRunner {runner: bdd.combine(runner, suffixRunners.map((s) -> s.runner)...), steps, run}
   }
 
 declareStepsAndScenario = ({steps, scenario}) ->

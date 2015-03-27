@@ -14,12 +14,16 @@ exports.result = ->
   }
 
 
-exports.combine = (leftRunner, rightRunner) ->
+exports.combine = (leftRunner, rightRunner, rest...) ->
   assert leftRunner, 'left runner not defined'
   assert rightRunner, 'right runner not defined'
 
-  return leftRunner.combine rightRunner
+  runner = leftRunner.combine rightRunner
 
+  if rest.length
+    return exports.combine runner, rest...
+
+  return runner
 
 exports.accordingTo = (spec) ->
   assert.equal typeof(spec), 'function', 'Spec must be a function'
