@@ -114,6 +114,31 @@ describe 'bdd', ->
             done()
           .fail done
 
+  describe 'with resultTo', ->
+    feature = (result1, result2) ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: {}
+          WHEN: 'something is done ${action}': ({@action}) ->
+            return "(#{@action})"
+          THEN: 'with the result': sinon.spy ({result1, result2}) ->
+            assert.equal result1, "(two)"
+            assert.equal result2, "(three)"
+
+        scenario: (runner) ->
+          runner
+            .when('something is done ${action}', action: 'two').resultTo(result1)
+            .when('something is done ${action}', action: 'three').resultTo(result2)
+            .then 'with the result', ({result1, result2})
+
+    it 'should resolve the result object before passing to the next step', (done) ->
+      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).run cbw(done) ->
+        result
+          .then (resultValue) ->
+            assert steps.THEN['with the result'].called
+            done()
+          .fail done
+
 
   describe 'combine()', ->
     it 'should run one set of steps after the other', (done) ->
@@ -134,7 +159,7 @@ describe 'bdd', ->
 
         scenario: (runner) ->
           runner
-            .when('something is done ${action}', action: 'two')#.resultTo(result)
+            .when('something is done ${action}', action: 'two')
 
       feature3 = declareStepsAndScenario
         steps:
