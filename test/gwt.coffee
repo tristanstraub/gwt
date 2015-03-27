@@ -218,6 +218,34 @@ describe 'bdd', ->
 
             done()
 
+    it 'should not execute promises more than once when features are reused', (done) ->
+      ce = cbw done
+      {feature1, feature2, feature3} = features()
+
+      run1 = feature1.combine(feature2).combine(feature3)
+      run2 = feature1.combine(feature2).combine(feature3)
+
+      runX = run1.combine(run2)
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+      {steps: steps3} = feature3
+
+      runX.run ce ->
+        assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 2
+        assert.equal steps2.WHEN['something is done ${action}'].callCount, 2
+        assert.equal steps3.THEN['something should have happened'].callCount, 2
+        runX.run ce ->
+          assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 4
+          assert.equal steps2.WHEN['something is done ${action}'].callCount, 4
+          assert.equal steps3.THEN['something should have happened'].callCount, 4
+          runX.run ce ->
+            assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 6
+            assert.equal steps2.WHEN['something is done ${action}'].callCount, 6
+            assert.equal steps3.THEN['something should have happened'].callCount, 6
+
+            done()
+
 
   describe 'with context', ->
     feature = ->
