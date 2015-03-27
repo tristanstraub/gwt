@@ -10,8 +10,6 @@ callAndPromise = (asyncFunction) ->
 
 
 describe 'bdd', ->
-  @timeout 500
-
   describe 'with substitutions', ->
     feature = ->
       return declareStepsAndScenario
