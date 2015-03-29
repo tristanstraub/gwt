@@ -172,10 +172,24 @@ describeScenario = (spec, {only, counts}) ->
 
   bdd = (descriptionBuilder, promiseBuilder) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
+
+    run = (done) ->
+      finish = ->
+        spec.done?()
+        done()
+
+      currentContext = null
+      updateContext = -> currentContext = this
+      promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
+        .then(finish)
+        .fail(done)
+
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
     descriptionBuilder: descriptionBuilder
     crossCombineResults: crossCombineResults
+
+    run: run
 
     resultTo: (result) ->
       assert result, 'Result must be a promiseBuilder. Create one with bdd.result()'
@@ -220,16 +234,7 @@ describeScenario = (spec, {only, counts}) ->
       bddIt ?= global.it
       bddIt = if only then bddIt.only.bind(bddIt) else bddIt
 
-      bddIt descriptionBuilder.get(), (done) ->
-        finish = ->
-          spec.done?()
-          done()
-
-        currentContext = null
-        updateContext = -> currentContext = this
-        promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
-          .then(finish)
-          .fail(done)
+      bddIt descriptionBuilder.get(), run
 
   return bdd(buildDescription(), promiseBuilderFactory())
 

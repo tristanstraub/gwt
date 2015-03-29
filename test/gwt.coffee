@@ -25,28 +25,28 @@ describe 'bdd', ->
             .then 'I expect a result ${expectation}', expectation: 'three'
 
     it 'should call `it` with description', (done) ->
-      feature().run cbw(done) ({bddIt}) ->
+      feature().runWithIt cbw(done) ({bddIt}) ->
         assert.equal bddIt.getCall(0).args[0],
           'Given a condition one, when something is done two, then I expect a result three'
         done()
 
     it 'should generate one test', (done) ->
-      feature().run cbw(done) ({tests}) ->
+      feature().runWithIt cbw(done) ({tests}) ->
         assert.equal tests.length, 1
         done()
 
     it 'should call GIVEN with substitution', (done) ->
-      ({steps} = feature()).run cbw(done) ({tests}) ->
+      ({steps} = feature()).runWithIt cbw(done) ({tests}) ->
         assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
         done()
 
     it 'should call WHEN with substitution', (done) ->
-      ({steps} = feature()).run cbw(done) ({tests}) ->
+      ({steps} = feature()).runWithIt cbw(done) ({tests}) ->
         assert steps.WHEN['something is done ${action}'].calledWith action: 'two'
         done()
 
     it 'should call THEN with substitution', (done) ->
-      ({steps} = feature()).run cbw(done) ({tests}) ->
+      ({steps} = feature()).runWithIt cbw(done) ({tests}) ->
         assert steps.THEN['I expect a result ${expectation}'].calledWith expectation: 'three'
         done()
 
@@ -76,17 +76,17 @@ describe 'bdd', ->
 
 
     it 'should resolve GIVEN promise', (done) ->
-      feature(onCalled = {}).run cbw(done) ->
+      feature(onCalled = {}).runWithIt cbw(done) ->
         assert.equal onCalled.given, true
         done()
 
     it 'should resolve WHEN promise', (done) ->
-      feature(onCalled = {}).run cbw(done) ->
+      feature(onCalled = {}).runWithIt cbw(done) ->
         assert.equal onCalled.when, true
         done()
 
     it 'should resolve THEN promise', (done) ->
-      feature(onCalled = {}).run cbw(done) ->
+      feature(onCalled = {}).runWithIt cbw(done) ->
         assert.equal onCalled.then, true
         done()
 
@@ -109,7 +109,7 @@ describe 'bdd', ->
 
     it 'should resolve the result object before passing to the next step', (done) ->
       ce = cbw done
-      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).run ce ->
+      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).runWithIt ce ->
         assert steps.THEN['with the result'].called
         done()
 
@@ -143,7 +143,7 @@ describe 'bdd', ->
       {steps: steps1} = feature1
       {steps: steps2} = feature2
 
-      feature1.combine(feature2).run ce ->
+      feature1.combine(feature2).runWithIt ce ->
         assert steps1.GIVEN['a condition'].called, 'First feature steps not called'
         assert steps2.THEN['the second context'].called, 'Third feature steps not called'
         done()
@@ -179,7 +179,7 @@ describe 'bdd', ->
       {steps: steps1} = feature1
       {steps: steps2} = feature2
 
-      feature1.combine(feature2).run ce ->
+      feature1.combine(feature2).runWithIt ce ->
         assert steps1.GIVEN['a condition'].called, 'First feature steps not called'
         assert steps1.THEN['the first context'].called, 'Second feature steps not called'
         assert steps2.THEN['the second context'].called, 'Third feature steps not called'
@@ -208,7 +208,7 @@ describe 'bdd', ->
       ce = cbw done
       {feature1, feature2} = features()
 
-      feature1.combine(feature2).run ce ({bddIt}) ->
+      feature1.combine(feature2).runWithIt ce ({bddIt}) ->
         assert.equal bddIt.getCall(0).args[0], 'Given a condition, when something is done'
         done()
 
@@ -246,7 +246,7 @@ describe 'bdd', ->
       {steps: steps1} = feature1
       {steps: steps2} = feature2
 
-      feature1.combine(feature2).run ce ->
+      feature1.combine(feature2).runWithIt ce ->
         assert steps1.GIVEN['a condition ${condition}'].called, 'First feature steps not called'
         assert steps2.WHEN['something is done ${action}'].called, 'Second feature steps not called'
         done()
@@ -259,7 +259,7 @@ describe 'bdd', ->
       {steps: steps2} = feature2
       {steps: steps3} = feature3
 
-      feature1.combine(feature2, feature3).run ce ->
+      feature1.combine(feature2, feature3).runWithIt ce ->
         assert steps1.GIVEN['a condition ${condition}'].called, 'First feature steps not called'
         assert steps2.WHEN['something is done ${action}'].called, 'Second feature steps not called'
         assert steps3.THEN['something should have happened'].called, 'Third feature steps not called'
@@ -275,15 +275,15 @@ describe 'bdd', ->
       {steps: steps2} = feature2
       {steps: steps3} = feature3
 
-      run1.run ce ->
+      run1.runWithIt ce ->
         assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 1
         assert.equal steps2.WHEN['something is done ${action}'].callCount, 1
         assert.equal steps3.THEN['something should have happened'].callCount, 1
-        run1.run ce ->
+        run1.runWithIt ce ->
           assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 2
           assert.equal steps2.WHEN['something is done ${action}'].callCount, 2
           assert.equal steps3.THEN['something should have happened'].callCount, 2
-          run1.run ce ->
+          run1.runWithIt ce ->
             assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 3
             assert.equal steps2.WHEN['something is done ${action}'].callCount, 3
             assert.equal steps3.THEN['something should have happened'].callCount, 3
@@ -303,15 +303,15 @@ describe 'bdd', ->
       {steps: steps2} = feature2
       {steps: steps3} = feature3
 
-      runX.run ce ->
+      runX.runWithIt ce ->
         assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 2
         assert.equal steps2.WHEN['something is done ${action}'].callCount, 2
         assert.equal steps3.THEN['something should have happened'].callCount, 2
-        runX.run ce ->
+        runX.runWithIt ce ->
           assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 4
           assert.equal steps2.WHEN['something is done ${action}'].callCount, 4
           assert.equal steps3.THEN['something should have happened'].callCount, 4
-          runX.run ce ->
+          runX.runWithIt ce ->
             assert.equal steps1.GIVEN['a condition ${condition}'].callCount, 6
             assert.equal steps2.WHEN['something is done ${action}'].callCount, 6
             assert.equal steps3.THEN['something should have happened'].callCount, 6
@@ -326,30 +326,57 @@ describe 'bdd', ->
           GIVEN: 'a condition ${condition}': ({@condition}) ->
           WHEN: 'something is done ${action}': ({@action}) ->
           THEN: 'I expect a result ${expectation}': ({@expectation}) ->
+          THEN: 'expect context': ({context}) ->
+            assert.deepEqual this, context
 
         scenario: (runner) ->
           runner
             .given 'a condition ${condition}', condition: 'one'
             .when 'something is done ${action}', action: 'two'
             .then 'I expect a result ${expectation}', expectation: 'three'
+            .then 'expect context', context: {
+              condition: 'one'
+              action: 'two'
+              expectation: 'three'
+            }
+
     # TODO unfinished
 
 
+  describe 'runner.run()', ->
+    feature = ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition ${condition}': sinon.spy ({@condition}) ->
 
-createTestContext = ->
+        scenario: (runner) ->
+          runner
+            .given 'a condition ${condition}', condition: 'one'
+
+    it 'should run scenario without binding to `it`', (done) ->
+      ce = cbw done
+
+      ({steps} = feature()).run ce ->
+        assert steps.GIVEN['a condition ${condition}'].calledOnce
+        assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
+        done()
+
+createRunner = ->
   tests = []
   bddIt = sinon.spy (name, fn) ->
     tests.push fn
 
-  run = ({runner}, cb) ->
+  runWithIt = ({runner}, cb) ->
     # Side effect: calls `it`, because `steps.done` is called inside scenario()
     runner.done it: bddIt
 
     async.series tests, cbw(cb) ->
       cb null, {bddIt, tests}
 
-  return {bddIt, tests, run}
+  run = ({runner}, cb) ->
+    runner.run cb
 
+  return {bddIt, tests, runWithIt, run}
 
 buildTestRunner = ({runner, steps}) ->
   assert runner, 'Runner not defined'
@@ -360,9 +387,14 @@ buildTestRunner = ({runner, steps}) ->
     runner
 
     run: (cb) ->
-      {run} = createTestContext()
+      {run} = createRunner()
 
       run {runner}, cb
+
+    runWithIt: (cb) ->
+      {runWithIt} = createRunner()
+
+      runWithIt {runner}, cb
 
     combine: (suffixRunners...) ->
       return buildTestRunner {steps, runner: bdd.combine(runner, suffixRunners.map((s) -> s.runner)...)}
