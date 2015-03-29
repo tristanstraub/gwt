@@ -361,6 +361,21 @@ describe 'bdd', ->
         assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
         done()
 
+  describe 'bdd.steps(steps)', ->
+    steps =
+      GIVEN: 'a condition ${condition}': sinon.spy ({@condition}) ->
+
+    it 'should product the same result as bdd.accordingTo(-> steps).getRunner()', (done) ->
+      ce = cbw done
+
+      bdd.steps(steps)
+        .given 'a condition ${condition}', condition: 'one'
+        .run ce ->
+          assert steps.GIVEN['a condition ${condition}'].calledOnce
+          assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
+          done()
+
+
 createRunner = ->
   tests = []
   bddIt = sinon.spy (name, fn) ->

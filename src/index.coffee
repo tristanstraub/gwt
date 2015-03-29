@@ -31,6 +31,9 @@ exports.combine = (leftRunner, rightRunner, rest...) ->
 
   return runner
 
+exports.steps = (spec) ->
+  return exports.accordingTo(-> spec).getRunner()
+
 exports.accordingTo = (spec) ->
   assert.equal typeof(spec), 'function', 'Spec must be a function'
 
