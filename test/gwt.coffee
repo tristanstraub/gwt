@@ -112,6 +112,35 @@ describe 'bdd', ->
         assert steps.THEN['with the result'].called
         done()
 
+  describe 'with resultTo with result.set() override', ->
+    feature = (result1, result2) ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: {}
+          WHEN:
+            'something is done ${action}': ({@action}) ->
+              return "(#{@action})"
+
+            'result is overriden': ({value}) ->
+              result2.set value
+
+          THEN: 'with the result': sinon.spy ({result1, result2}) ->
+            assert.equal result1, "(two)"
+            assert.equal result2, "(four)"
+
+        scenario: (runner) ->
+          runner
+            .when('something is done ${action}', action: 'two').resultTo(result1)
+            .when('something is done ${action}', action: 'three').resultTo(result2)
+            .when('result is overriden', value: '(four)')
+            .then 'with the result', ({result1, result2})
+
+    it 'should resolve to overriden value from result.set()', (done) ->
+      ce = cbw done
+      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).runWithIt ce ->
+        assert steps.THEN['with the result'].called
+        done()
+
   describe 'resultTo with combine', ->
     features = ->
       result = bdd.result()

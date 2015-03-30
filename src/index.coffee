@@ -10,12 +10,16 @@ uuid = require 'node-uuid'
 class Result
   constructor: (@id) ->
     assert @id, 'Result id not given'
+    @value = null
 
   getFromContext: (context) ->
-    return context[@id]
+    return if @overriden then @value else context[@id]
 
   setInContext: (context, value) ->
     context[@id] = value
+
+  set: (@value) ->
+    @overriden = true
 
 exports.result = makeResult = (id = uuid.v4())->
   return new Result(id)
