@@ -11,10 +11,10 @@ class Result
   constructor: (@id) ->
     assert @id, 'Result id not given'
 
-  get: (context) ->
+  getFromContext: (context) ->
     return context[@id]
 
-  set: (context, value) ->
+  setInContext: (context, value) ->
     context[@id] = value
 
 exports.result = makeResult = (id = uuid.v4())->
@@ -125,12 +125,12 @@ resolveResults = (context, object) ->
   if Array.isArray(objectCopy)
     for i in [0...objectCopy.length]
       result = objectCopy[i]
-      if result instanceof Result then objectCopy[i] = result.get(context)
+      if result instanceof Result then objectCopy[i] = result.getFromContext(context)
 
     return objectCopy
 
   for key, result of objectCopy
-    if result instanceof Result then objectCopy[key] = result.get(context)
+    if result instanceof Result then objectCopy[key] = result.getFromContext(context)
 
   return objectCopy
 
@@ -148,10 +148,10 @@ describeScenario = (spec, {only, counts}) ->
       newContext = _.extend {}, context, extraContext
       newContext.updateContext()
       # resolve promises contained in args. Use inplace replacement for the moment.
-      Q(fn.apply newContext, resolveResultArgs(crossCombineResults.get(context) ? {}, args)).then (result) ->
+      Q(fn.apply newContext, resolveResultArgs(crossCombineResults.getFromContext(context) ? {}, args)).then (result) ->
         # Pipe result to resultTo
         # TODO use Result for this
-        lastResult.set(newContext, result)
+        lastResult.setInContext(newContext, result)
         counts[name].called description
         # fn mutated context
         newContext
@@ -198,9 +198,9 @@ describeScenario = (spec, {only, counts}) ->
 
       bdd(descriptionBuilder,
         promiseBuilder.then (context) ->
-          results = crossCombineResults.get(context) ? {}
-          result.set results, lastResult.get(context)
-          crossCombineResults.set context, results
+          results = crossCombineResults.getFromContext(context) ? {}
+          result.setInContext results, lastResult.getFromContext(context)
+          crossCombineResults.setInContext context, results
           context)
 
     given: (description, args...) ->
@@ -226,7 +226,7 @@ describeScenario = (spec, {only, counts}) ->
         currentContext = null
         updateContext = -> currentContext = this
         newContext = {getContext: (-> currentContext), updateContext}
-        crossCombineResults.set newContext, crossCombineResults.get context
+        crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
         rightBdd.promiseBuilder.resolve(newContext)
 
       return bdd(descriptionBuilder.combine(rightBdd.descriptionBuilder), nextPromiseBuilder)
