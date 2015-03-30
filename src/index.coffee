@@ -134,11 +134,11 @@ resolveResults = (context, object) ->
 
   return objectCopy
 
+crossCombineResults = makeResult()
+lastResult = makeResult()
+
 describeScenario = (spec, {only, counts}) ->
   {GIVEN, WHEN, THEN, DONE} = spec
-
-  lastResult = makeResult()
-  crossCombineResults = makeResult()
 
   getter = (name, collection) -> (description) ->
     fn = collection[description]
@@ -190,7 +190,6 @@ describeScenario = (spec, {only, counts}) ->
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
     descriptionBuilder: descriptionBuilder
-    crossCombineResults: crossCombineResults
 
     run: run
 
@@ -227,8 +226,7 @@ describeScenario = (spec, {only, counts}) ->
         currentContext = null
         updateContext = -> currentContext = this
         newContext = {getContext: (-> currentContext), updateContext}
-        rightBdd.crossCombineResults.set newContext, crossCombineResults.get context
-
+        crossCombineResults.set newContext, crossCombineResults.get context
         rightBdd.promiseBuilder.resolve(newContext)
 
       return bdd(descriptionBuilder.combine(rightBdd.descriptionBuilder), nextPromiseBuilder)

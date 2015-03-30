@@ -74,7 +74,6 @@ describe 'bdd', ->
             .when 'something is done ${action}', action: 'two'
             .then 'I expect a result ${expectation}', expectation: 'three'
 
-
     it 'should resolve GIVEN promise', (done) ->
       feature(onCalled = {}).runWithIt cbw(done) ->
         assert.equal onCalled.given, true
@@ -136,6 +135,15 @@ describe 'bdd', ->
           runner
             .then 'the second context', {result}
 
+      feature3: declareStepsAndScenario
+        steps:
+          THEN: 'the third context': sinon.spy ({result}) ->
+            assert.equal result, 'a result'
+
+        scenario: (runner) ->
+          runner
+            .then 'the third context', {result}
+
     it 'should cross combine', (done) ->
       ce = cbw done
       {feature1, feature2} = features()
@@ -145,7 +153,21 @@ describe 'bdd', ->
 
       feature1.combine(feature2).runWithIt ce ->
         assert steps1.GIVEN['a condition'].called, 'First feature steps not called'
-        assert steps2.THEN['the second context'].called, 'Third feature steps not called'
+        assert steps2.THEN['the second context'].called, 'Second feature steps not called'
+        done()
+
+    it 'should be reusable across multiple combines', (done) ->
+      ce = cbw done
+      {feature1, feature2, feature3} = features()
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+      {steps: steps3} = feature3
+
+      feature1.combine(feature2).combine(feature3).runWithIt ce ->
+        assert steps1.GIVEN['a condition'].called, 'First feature steps not called'
+        assert steps2.THEN['the second context'].called, 'Second feature steps not called'
+        assert steps3.THEN['the third context'].called, 'Third feature steps not called'
         done()
 
 
@@ -290,7 +312,7 @@ describe 'bdd', ->
 
             done()
 
-    it 'should not execute promises more than once when features are reused', (done) ->
+    it 'should not execute promises more than once when features are reused in multiple scenarios', (done) ->
       ce = cbw done
       {feature1, feature2, feature3} = features()
 
