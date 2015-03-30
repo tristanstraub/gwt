@@ -412,6 +412,14 @@ describe 'bdd', ->
         assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
         done()
 
+    it 'should return a promise when no callback is given', (done) ->
+      ce = cbw done
+
+      ({steps} = feature()).run().then ->
+        assert steps.GIVEN['a condition ${condition}'].calledOnce
+        assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
+        done()
+
   describe 'bdd.steps(steps)', ->
     steps =
       GIVEN: 'a condition ${condition}': sinon.spy ({@condition}) ->
