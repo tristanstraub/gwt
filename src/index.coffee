@@ -153,12 +153,18 @@ describeScenario = (spec, {only, counts}) ->
       newContext.updateContext()
       # resolve promises contained in args. Use inplace replacement for the moment.
       Q(fn.apply newContext, resolveResultArgs(crossCombineResults.getFromContext(context) ? {}, args)).then (result) ->
-        # Pipe result to resultTo
-        # TODO use Result for this
-        lastResult.setInContext(newContext, result)
-        counts[name].called description
-        # fn mutated context
-        newContext
+        nextStep = ->
+          # Pipe result to resultTo
+          # TODO use Result for this
+          lastResult.setInContext(newContext, result)
+          counts[name].called description
+          # fn mutated context
+          newContext
+
+        if typeof result is 'function'
+          Q.denodeify(result)().then nextStep
+        else
+          nextStep()
 
   getGiven = getter 'GIVEN', GIVEN
   getWhen = getter 'WHEN', WHEN

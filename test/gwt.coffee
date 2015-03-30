@@ -89,6 +89,23 @@ describe 'bdd', ->
         assert.equal onCalled.then, true
         done()
 
+  describe 'with async function', ->
+    feature = (onCalled) ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition ${condition}': ({condition}) -> (cb) ->
+            onCalled.given = true
+            cb null
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition ${condition}', condition: 'one'
+
+    it 'should resolve GIVEN when function is returned', (done) ->
+      feature(onCalled = {}).runWithIt cbw(done) ->
+        assert.equal onCalled.given, true
+        done()
+
   describe 'with resultTo', ->
     feature = (result1, result2) ->
       return declareStepsAndScenario
