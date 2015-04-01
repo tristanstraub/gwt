@@ -110,33 +110,36 @@ buildDescription = (fullDescription = '') ->
   combine: (nextDescription) ->
     buildDescription "#{fullDescription}#{nextDescription.get()}"
 
-resolveResultArgs = (context, args) ->
+resolveResultArray = (context, args) ->
   argsCopy = _.clone args
 
   for i in [0...argsCopy.length]
-    argsCopy[i] = resolveResults(context, argsCopy[i])
+    argsCopy[i] = resolveResultObject(context, argsCopy[i])
 
   return argsCopy
 
-resolveResults = (context, object) ->
-  if !object then return
-  if typeof object isnt 'object' then return object
-  if object instanceof Date then return object
-  if object instanceof RegExp then return object
+resolveResultObject = (context, object) ->
+  return (
+    if object instanceof Result
+      object.getFromContext(context)
+    else if !object
+      object
+    else if typeof object isnt 'object'
+      object
+    else if object instanceof Date
+      object
+    else if object instanceof RegExp
+      object
+    else if Array.isArray(object)
+      resolveResultArray(context, object)
+    else
+      objectCopy = _.clone object
 
-  objectCopy = _.clone object
+      for key, result of objectCopy
+        objectCopy[key] = resolveResultObject(context, result)
 
-  if Array.isArray(objectCopy)
-    for i in [0...objectCopy.length]
-      result = objectCopy[i]
-      if result instanceof Result then objectCopy[i] = result.getFromContext(context)
-
-    return objectCopy
-
-  for key, result of objectCopy
-    if result instanceof Result then objectCopy[key] = result.getFromContext(context)
-
-  return objectCopy
+      objectCopy
+  )
 
 crossCombineResults = makeResult()
 lastResult = makeResult()
@@ -152,7 +155,7 @@ describeScenario = (spec, {only, counts}) ->
       newContext = _.extend {}, context, extraContext
       newContext.updateContext()
       # resolve promises contained in args. Use inplace replacement for the moment.
-      Q(fn.apply newContext, resolveResultArgs(crossCombineResults.getFromContext(context) ? {}, args)).then (result) ->
+      Q(fn.apply newContext, resolveResultArray(crossCombineResults.getFromContext(context) ? {}, args)).then (result) ->
         nextStep = ->
           # Pipe result to resultTo
           # TODO use Result for this

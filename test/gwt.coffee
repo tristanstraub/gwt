@@ -129,6 +129,29 @@ describe 'bdd', ->
         assert steps.THEN['with the result'].called
         done()
 
+  describe 'with resultTo nested', ->
+    feature = (result1, result2) ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: {}
+          WHEN: 'something is done ${action}': ({@action}) ->
+            return "(#{@action})"
+          THEN: 'with the result': sinon.spy ({content}) ->
+            assert.equal content.result1, "(two)"
+            assert.equal content.result2, "(three)"
+
+        scenario: (runner) ->
+          runner
+            .when('something is done ${action}', action: 'two').resultTo(result1)
+            .when('something is done ${action}', action: 'three').resultTo(result2)
+            .then 'with the result', content: {result1, result2}
+
+    it 'should resolve the nested result object before passing to the next step', (done) ->
+      ce = cbw done
+      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).runWithIt ce ->
+        assert steps.THEN['with the result'].called
+        done()
+
   describe 'with resultTo destructuring', ->
     feature = (result1, one, two) ->
       assert result1
