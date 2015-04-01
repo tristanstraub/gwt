@@ -368,6 +368,16 @@ describe 'bdd', ->
         assert steps2.WHEN['something is done ${action}'].called, 'Second feature steps not called'
         done()
 
+    it 'should combine reflexively', (done) ->
+      ce = cbw done
+      {feature1} = features()
+
+      {steps: steps1} = feature1
+
+      bdd.combine(feature1).runWithIt ce ->
+        assert steps1.GIVEN['a condition ${condition}'].called, 'First feature steps not called'
+        done()
+
     it 'should run one set of steps after the other', (done) ->
       ce = cbw done
       {feature1, feature2, feature3} = features()

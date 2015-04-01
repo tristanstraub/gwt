@@ -24,16 +24,18 @@ class Result
 exports.result = makeResult = (id = uuid.v4())->
   return new Result(id)
 
-exports.combine = (leftRunner, rightRunner, rest...) ->
+exports.combine = (leftRunner, rest...) ->
   assert leftRunner, 'left runner not defined'
-  assert rightRunner, 'right runner not defined'
 
-  runner = leftRunner.combine rightRunner
+  return (
+    if !rest.length
+      leftRunner
+    else
+      [rightRunner, rest...] = rest
+      assert rightRunner, 'right runner not defined'
 
-  if rest.length
-    return exports.combine runner, rest...
-
-  return runner
+      exports.combine leftRunner.combine(rightRunner), rest...
+  )
 
 exports.steps = (spec) ->
   return exports.accordingTo(-> spec).getRunner()
