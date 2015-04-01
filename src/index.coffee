@@ -192,22 +192,19 @@ describeScenario = (spec, {only, counts}) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
 
     run = (done) ->
-      promise = if !done
-        deferred = Q.defer()
-        done = -> deferred.resolve()
-        deferred.promise
-
       finish = ->
         spec.done?()
-        done()
+        done?()
+
+      fail = (err) ->
+        if done then return done err
+        throw err
 
       currentContext = null
       updateContext = -> currentContext = this
-      promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
+      return promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
         .then(finish)
-        .fail(done)
-
-      return promise
+        .fail(fail)
 
     # Used by combine for chaining
     promiseBuilder: promiseBuilder

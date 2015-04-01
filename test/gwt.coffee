@@ -496,6 +496,38 @@ describe 'bdd', ->
         assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
         done()
 
+  describe 'runner.run() errors', ->
+    feature = ->
+      steps:
+        GIVEN: 'a condition': ->
+          console.error 'error'
+          throw new Error 'condition threw error'
+
+      scenario: (runner) ->
+        runner
+          .given 'a condition'
+
+    it 'should not chew up errors when used as a promise', (done) ->
+      ce = cbw done
+
+      {steps, scenario} = feature()
+
+      scenario(bdd.steps(steps)).run().fail (err) ->
+        assert /condition threw error/.test err
+        assert err instanceof Error
+        done()
+
+    it 'should not chew up errors when used with callback', (done) ->
+      ce = cbw done
+
+      {steps, scenario} = feature()
+
+      scenario(bdd.steps(steps)).run (err) ->
+        assert /condition threw error/.test err
+        assert err instanceof Error
+        done()
+
+
   describe 'bdd.steps(steps)', ->
     steps =
       GIVEN: 'a condition ${condition}': sinon.spy ({@condition}) ->
