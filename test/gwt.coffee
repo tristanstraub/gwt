@@ -152,6 +152,63 @@ describe 'bdd', ->
         assert steps.THEN['with the result'].called
         done()
 
+  describe 'with resultTo nested', ->
+    feature = ->
+      first = bdd.result()
+      second = bdd.result()
+
+      return declareStepsAndScenario
+        steps:
+          WHEN:
+            'the first value is returned': ->
+              return 'the first value'
+
+            'the second value is returned': ->
+              return 'the second value'
+
+          THEN: 'the values should be found': sinon.spy ({first, rest}) ->
+            {second} = rest
+
+            assert.equal first, "the first value"
+            assert.equal second, "the second value"
+
+        scenario: (runner) ->
+          runner
+            .when('the first value is returned').resultTo(first)
+            .when('the second value is returned').resultTo(second)
+            .then 'the values should be found', {first, rest: {second}}
+
+    it 'should resolve the nested result object within an array before passing to the next step', (done) ->
+      ce = cbw done
+      ({steps} = feature()).runWithIt ce ->
+        assert steps.THEN['the values should be found'].called
+        done()
+
+  describe 'with resultTo nested with callback', ->
+    feature = ->
+      first = bdd.result()
+      second = bdd.result()
+
+      return declareStepsAndScenario
+        steps:
+          WHEN:
+            'the first value is returned': -> (cb) ->
+              cb null, 'the first value'
+
+          THEN: 'the values should be found': sinon.spy ({first}) ->
+            assert.equal first, "the first value"
+
+        scenario: (runner) ->
+          runner
+            .when('the first value is returned').resultTo(first)
+            .then 'the values should be found', {first, rest: {second}}
+
+    it 'should resolve the nested result object when returned with a callback', (done) ->
+      ce = cbw done
+      ({steps} = feature()).runWithIt ce ->
+        assert steps.THEN['the values should be found'].called
+        done()
+
   describe 'with resultTo destructuring', ->
     feature = (result1, one, two) ->
       assert result1

@@ -158,7 +158,7 @@ describeScenario = (spec, {only, counts}) ->
       newContext.updateContext()
       # resolve promises contained in args. Use inplace replacement for the moment.
       Q(fn.apply newContext, resolveResultArray(crossCombineResults.getFromContext(context) ? {}, args)).then (result) ->
-        nextStep = ->
+        nextStep = (result) ->
           # Pipe result to resultTo
           # TODO use Result for this
           lastResult.setInContext(newContext, result)
@@ -169,7 +169,7 @@ describeScenario = (spec, {only, counts}) ->
         if typeof result is 'function'
           Q.denodeify(result)().then nextStep
         else
-          nextStep()
+          nextStep result
 
   getGiven = getter 'GIVEN', GIVEN
   getWhen = getter 'WHEN', WHEN
@@ -217,6 +217,7 @@ describeScenario = (spec, {only, counts}) ->
         promiseBuilder.then (context) ->
           results = crossCombineResults.getFromContext(context) ? {}
           lastResultValue = lastResult.getFromContext(context)
+
           if result instanceof Result
             assert result instanceof Result, 'Result must be created with bdd.result()'
             result.setInContext results, lastResultValue
