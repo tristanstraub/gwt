@@ -129,6 +129,32 @@ describe 'bdd', ->
         assert steps.THEN['with the result'].called
         done()
 
+  describe 'with resultTo destructuring', ->
+    feature = (result1, one, two) ->
+      assert result1
+      assert one
+      assert two
+
+      return declareStepsAndScenario
+        steps:
+          GIVEN: {}
+          WHEN: 'a result': ->
+            return {one: 1, two: 2}
+          THEN: 'the result should be': ({one, two}) ->
+            assert.equal one, 1
+            assert.equal two, 2
+
+        scenario: (runner) ->
+          runner
+            .when('a result').resultTo({one, two})
+            .then('the result should be', {one, two})
+
+    it 'should destructure the result into object attributes', (done) ->
+      ce = cbw done
+      feature(result = bdd.result(), one = bdd.result(), two = bdd.result()).runWithIt ce ->
+
+        done()
+
   describe 'with resultTo with result.set() override', ->
     feature = (result1, result2) ->
       return declareStepsAndScenario

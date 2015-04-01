@@ -211,12 +211,18 @@ describeScenario = (spec, {only, counts}) ->
     run: run
 
     resultTo: (result) ->
-      assert result, 'Result must be a promiseBuilder. Create one with bdd.result()'
-
       bdd(descriptionBuilder,
         promiseBuilder.then (context) ->
           results = crossCombineResults.getFromContext(context) ? {}
-          result.setInContext results, lastResult.getFromContext(context)
+          lastResultValue = lastResult.getFromContext(context)
+          if result instanceof Result
+            assert result instanceof Result, 'Result must be created with bdd.result()'
+            result.setInContext results, lastResultValue
+          else
+            for rkey, r of result
+              assert r instanceof Result, 'Subresult isnt bdd.result()'
+              r.setInContext results, lastResultValue[rkey]
+
           crossCombineResults.setInContext context, results
           context)
 
