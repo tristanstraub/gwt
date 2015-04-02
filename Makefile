@@ -23,7 +23,7 @@ test-watch:
 		test/*.coffee
 
 publish: test build
-	tar -zcvf ./gwt-$(VERSION).tgz -C .. gwt/package.json gwt/lib
+	tar -zcvf ./gwt-$(VERSION).tgz -C .. gwt/package.json gwt/lib gwt/README.md
 	npm publish ./gwt-$(VERSION).tgz
 
 .PHONY: build clean test
