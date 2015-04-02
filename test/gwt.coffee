@@ -46,6 +46,29 @@ describe 'bdd', ->
       feature(done).runWithIt done
 
 
+  describe 'tap() as first call', ->
+    feature = (cb) ->
+      result = bdd.result()
+
+      return declareStepsAndScenario
+        steps:
+          GIVEN: 'a value': sinon.spy ({value}) ->
+            assert.equal value, 'this is a value'
+
+        scenario: (runner) ->
+          runner
+            .tap -> return 'this is a value'
+            .resultTo result
+            .given 'a value', {value: result}
+
+    it 'allows access to the destructuring from resultTo', (done) ->
+      ce = cbw done
+
+      ({steps} = feature(done)).runWithIt ce ->
+        assert steps.GIVEN['a value'].called
+        done()
+
+
   describe 'with substitutions', ->
     feature = ->
       return declareStepsAndScenario
