@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="title" content="README"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2015-04-02T23:38+1100"/>
+<meta name="generated" content="2015-04-02T23:50+1100"/>
 <meta name="author" content="tristan"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -151,9 +151,12 @@ for the JavaScript code in this tag.
 <li><a href="#sec-1-4-1">1.4.1 Single results can be returned from and passed into steps</a></li>
 <li><a href="#sec-1-4-2">1.4.2 Multiple results can be passed into steps</a></li>
 <li><a href="#sec-1-4-3">1.4.3 Multiple results can be returned from steps</a></li>
+<li><a href="#sec-1-4-4">1.4.4 Results can be permanently overriden with `set`</a></li>
+<li><a href="#sec-1-4-5">1.4.5 Use `tap()` instead of `result.set`</a></li>
 </ul>
 </li>
-<li><a href="#sec-1-5">1.5 Steps can be combined from multiple declarations</a></li>
+<li><a href="#sec-1-5">1.5 Steps can be combined from multiple declarations using `gwt.combine(&hellip;)`</a></li>
+<li><a href="#sec-1-6">1.6 Insert a custom function call without a step declaration (debugging)</a></li>
 </ul>
 </li>
 </ul>
@@ -588,12 +591,75 @@ steps
 
 
 </div>
+
+</div>
+
+<div id="outline-container-1-4-4" class="outline-4">
+<h4 id="sec-1-4-4"><span class="section-number-4">1.4.4</span> Results can be permanently overriden with `set`</h4>
+<div class="outline-text-4" id="text-1-4-4">
+
+
+<p>
+If you call `result.set` with a value, any time it is passed
+to a step, it will be substituted with the given value.
+</p>
+<p>
+You can call `set` inside or outside a step.
+</p>
+
+
+
+<pre class="example">value = gwt.result()
+value.set 'xyz'
+
+steps = gwt.steps
+  THEN: 'result can be used': ({value}) -&gt;
+    assert.equal baz, 'xyz'
+
+steps
+  .then('result can be used', {value})
+  .run (err) -&gt; ...
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1-4-5" class="outline-4">
+<h4 id="sec-1-4-5"><span class="section-number-4">1.4.5</span> Use `tap()` instead of `result.set`</h4>
+<div class="outline-text-4" id="text-1-4-5">
+
+
+<p>
+Using `tap()` provides a less permanent way of setting a result
+placeholder value.
+</p>
+
+
+
+<pre class="example">baz = gwt.result()
+
+steps = gwt.steps
+  THEN:
+    'baz has been set': ({baz}) -&gt;
+      assert.equal baz, 'xyz'
+
+steps
+  .tap(({baz} -&gt; return 'xyz'), {baz})
+  .then 'baz has been set', {baz}
+  .run (err) -&gt; ...
+</pre>
+
+
+
+</div>
 </div>
 
 </div>
 
 <div id="outline-container-1-5" class="outline-3">
-<h3 id="sec-1-5"><span class="section-number-3">1.5</span> Steps can be combined from multiple declarations</h3>
+<h3 id="sec-1-5"><span class="section-number-3">1.5</span> Steps can be combined from multiple declarations using `gwt.combine(&hellip;)`</h3>
 <div class="outline-text-3" id="text-1-5">
 
 
@@ -603,6 +669,10 @@ which
 can be combined with other runners using `gwt.combine(runner1,
 runner2, &hellip;)` to produce another runner, so that any level of nesting
 is possible.
+</p>
+<p>
+NOTE: Context does not get copied between combined runners. However,
+result placeholders do carry values across combined runners.
 </p>
 
 
@@ -629,13 +699,43 @@ gwt.combine(
 
 </pre>
 
+
+</div>
+
+</div>
+
+<div id="outline-container-1-6" class="outline-3">
+<h3 id="sec-1-6"><span class="section-number-3">1.6</span> Insert a custom function call without a step declaration (debugging)</h3>
+<div class="outline-text-3" id="text-1-6">
+
+
+<p>
+You can access context and result values by providing a function
+instead of a description to the `steps.tap()` function
+</p>
+
+
+
+<pre class="example">baz = gwt.result()
+
+steps = gwt.steps
+  WHEN:
+    'baz is created': -&gt;
+      return 'xyz'
+
+steps
+  .when('baz is created').resultTo(baz)
+  .tap(({baz} -&gt; console.log baz), {baz})
+  .run (err) -&gt; ...
+</pre>
+
 </div>
 </div>
 </div>
 </div>
 
 <div id="postamble">
-<p class="date">Date: 2015-04-02T23:38+1100</p>
+<p class="date">Date: 2015-04-02T23:50+1100</p>
 <p class="author">Author: tristan</p>
 <p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3f with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
