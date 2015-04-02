@@ -78,8 +78,9 @@ getCounts = (spec) ->
     GIVEN: Object.keys(spec.GIVEN or {})
     THEN: Object.keys(spec.THEN or {})
     WHEN: Object.keys(spec.WHEN or {})
+    TAP: Object.keys(spec.TAP or {})
 
-  counts = {GIVEN: {}, WHEN: {}, THEN: {}}
+  counts = {GIVEN: {}, WHEN: {}, THEN: {}, TAP: {}}
 
   return {
     GIVEN: called: (description) ->
@@ -91,6 +92,9 @@ getCounts = (spec) ->
     THEN: called: (description) ->
       counts.THEN[description] ?= 0
       counts.THEN[description]++
+    TAP: called: (description) ->
+      counts.TAP[description] ?= 0
+      counts.TAP[description]++
     getUncovered: ->
       return {
         GIVEN: keys.GIVEN.filter (description) -> !counts.GIVEN[description]
@@ -150,7 +154,8 @@ describeScenario = (spec, {only, counts}) ->
   {GIVEN, WHEN, THEN, DONE} = spec
 
   getter = (name, collection) -> (description) ->
-    fn = collection[description]
+    fn = if typeof(description) isnt 'function' then collection[description] else description
+
     if !fn then throw new Error "'#{name}' doesn't contain '#{description}'"
     return (context, extraContext, args) ->
       # Isolate from previous context.
@@ -174,6 +179,7 @@ describeScenario = (spec, {only, counts}) ->
   getGiven = getter 'GIVEN', GIVEN
   getWhen = getter 'WHEN', WHEN
   getThen = getter 'THEN', THEN
+  getTap = getter 'TAP'
 
   promiseBuilderFactory = ({chain} = {chain:  I.List()}) ->
     return {
@@ -243,6 +249,10 @@ describeScenario = (spec, {only, counts}) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.then(description, args),
         promiseBuilder.then (context) -> getThen(description) context, {description: expandedDescription}, args)
+
+    tap: (fn, args...) ->
+      bdd(descriptionBuilder,
+        promiseBuilder.then (context) -> getTap(fn) context, {}, args)
 
     combine: (rightBdd) ->
       assert rightBdd, 'right bdd not defined'

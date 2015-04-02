@@ -10,6 +10,42 @@ callAndPromise = (asyncFunction) ->
 
 
 describe 'bdd', ->
+  describe 'tap()', ->
+    feature = (cb) ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: 'a value': ->
+            @value = 'this is a value'
+
+        scenario: (runner) ->
+          runner
+            .given('a value')
+            .tap ->
+              assert.equal @value, 'this is a value'
+
+    it 'allows access to the context', (done) ->
+      feature(done).runWithIt done
+
+  describe 'tap()', ->
+    feature = (cb) ->
+      result = bdd.result()
+
+      return declareStepsAndScenario
+        steps:
+          GIVEN: 'a value': ->
+            return 'this is a value'
+
+        scenario: (runner) ->
+          runner
+            .given('a value').resultTo(result)
+            .tap ({result}) ->
+              assert.equal result, 'this is a value'
+            , {result}
+
+    it 'allows access to the destructuring from resultTo', (done) ->
+      feature(done).runWithIt done
+
+
   describe 'with substitutions', ->
     feature = ->
       return declareStepsAndScenario
