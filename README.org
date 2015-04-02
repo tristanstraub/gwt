@@ -89,7 +89,23 @@ If you create a function within a step, and call it later, its lexical scope poi
 You can retrieve the latest context through the function `getContext`
 held within each context object.
 
-Writing to a previous context object does not carry over to the rest:
+*** Normal use of context, without lexical closures:
+
+#+BEGIN_SRC coffee
+  steps = gwt.steps
+    GIVEN: 'a given': ->
+      @bar = 'x'
+
+    WHEN: 'an action is taken': ->
+      assert.equal @bar, 'x', 'Set in the wrong context' # -> PASS
+
+  steps
+    .given 'a given'
+    .when 'an action is taken'
+    .run (err) -> ...
+#+END_SRC
+
+*** Writing to a previous context object does not carry over to the rest:
 
 #+BEGIN_SRC coffee
   steps = gwt.steps
@@ -107,6 +123,8 @@ Writing to a previous context object does not carry over to the rest:
     .when 'an action is taken'
     .run (err) -> ...
 #+END_SRC
+
+*** Using `getContext` from within closures to retrieve the current context
 
 To get this to work, use getContext, which returns the current
 context.
