@@ -1,0 +1,597 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>README</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="title" content="README"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2015-04-02T23:32+1100"/>
+<meta name="author" content="tristan"/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #add8e6; font-weight:normal }
+  .target { }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
+  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
+  .center {margin-left:auto; margin-right:auto; text-align:center;}
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top;  }
+  th.right  { text-align:center;  }
+  th.left   { text-align:center;   }
+  th.center { text-align:center; }
+  td.right  { text-align:right;  }
+  td.left   { text-align:left;   }
+  td.center { text-align:center; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  div.inlinetask {
+    padding:10px;
+    border:2px solid gray;
+    margin:10px;
+    background: #ffffcc;
+  }
+  textarea { overflow-x: auto; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2013 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+
+</head>
+<body>
+
+<div id="preamble">
+
+</div>
+
+<div id="content">
+<h1 class="title">README</h1>
+
+
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 Given, when, then</a>
+<ul>
+<li><a href="#sec-1-1">1.1 Declaring steps, building a test, and running the test</a>
+<ul>
+<li><a href="#sec-1-1-1">1.1.1 Steps declaration</a></li>
+<li><a href="#sec-1-1-2">1.1.2 Building a test</a></li>
+<li><a href="#sec-1-1-3">1.1.3 Running a test directly</a></li>
+<li><a href="#sec-1-1-4">1.1.4 Running a test using mocha</a></li>
+<li><a href="#sec-1-1-5">1.1.5 Override `it`</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-2">1.2 Context</a></li>
+<li><a href="#sec-1-3">1.3 Asynchronous steps</a>
+<ul>
+<li><a href="#sec-1-3-1">1.3.1 Steps can return promises:</a></li>
+<li><a href="#sec-1-3-2">1.3.2 Steps can use callbacks:</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-4">1.4 Results can be retrieved from and passed back into steps</a>
+<ul>
+<li><a href="#sec-1-4-1">1.4.1 Single results can be returned from and passed into steps</a></li>
+<li><a href="#sec-1-4-2">1.4.2 Multiple results can be passed into steps</a></li>
+<li><a href="#sec-1-4-3">1.4.3 Multiple results can be returned from steps</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-5">1.5 Steps can be combined from multiple declarations</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Given, when, then</h2>
+<div class="outline-text-2" id="text-1">
+
+
+<p>
+Behaviour driven development for nodejs.
+</p>
+
+</div>
+
+<div id="outline-container-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> Declaring steps, building a test, and running the test</h3>
+<div class="outline-text-3" id="text-1-1">
+
+
+
+</div>
+
+<div id="outline-container-1-1-1" class="outline-4">
+<h4 id="sec-1-1-1"><span class="section-number-4">1.1.1</span> Steps declaration</h4>
+<div class="outline-text-4" id="text-1-1-1">
+
+
+<p>
+The available dictionary of steps has to be created before
+the order of execution of these steps is declared:
+</p>
+
+
+
+<pre class="example">assert = require 'assert'
+gwt = require 'gwt'
+steps = gwt.steps
+  GIVEN:
+    'an elevator with open doors and ${n} buttons': ({n}) -&gt;
+      @buttons = new Array(n)
+      @lights = new Array(n)
+  WHEN:
+    'button ${i} is pressed': ({i}) -&gt;
+      @button[i].press()
+  THEN:
+    'the button light ${i} goes on': -&gt;
+      assert @lights[i].pressed
+</pre>
+
+
+<p>
+See how `this` is bound to a context object that is passed between
+each given/when/then step. Store shared data against `this`.
+</p>
+<p>
+NOTE: context is a new object in each step, with each key/value pair copied
+across to the new context, which is provided to the subsequent
+step. (See below)
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1-1-2" class="outline-4">
+<h4 id="sec-1-1-2"><span class="section-number-4">1.1.2</span> Building a test</h4>
+<div class="outline-text-4" id="text-1-1-2">
+
+
+<p>
+The order of execution is declared using the dictionary of
+steps. Steps can be used multiple times and in any order.
+</p>
+<p>
+`${&hellip;}` strings are placeholders for values passed into steps. They
+are used to generate descriptions for `it` blocks.
+</p>
+
+
+
+<pre class="example">myTest = steps
+  .given 'elevator with open doors and ${n} buttons', {n: 10}
+  .when 'button ${i} is pressed', {i: 4}
+  .then 'the button light ${i} goes on', {i: 4}
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1-1-3" class="outline-4">
+<h4 id="sec-1-1-3"><span class="section-number-4">1.1.3</span> Running a test directly</h4>
+<div class="outline-text-4" id="text-1-1-3">
+
+
+<ul>
+<li id="sec-1-1-3-1">Using a callback<br/>
+
+
+
+
+<pre class="example">myTest.run (err) -&gt; ...
+</pre>
+
+
+</li>
+</ul>
+<ul>
+<li id="sec-1-1-3-2">Returning a promise<br/>
+
+
+
+
+<pre class="example">myTest.run()
+  .then -&gt; ...
+  .fail (err) -&gt; ...
+</pre>
+
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-1-1-4" class="outline-4">
+<h4 id="sec-1-1-4"><span class="section-number-4">1.1.4</span> Running a test using mocha</h4>
+<div class="outline-text-4" id="text-1-1-4">
+
+
+
+
+<pre class="example"># `done()` registers with `it`
+myTest.done()
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1-1-5" class="outline-4">
+<h4 id="sec-1-1-5"><span class="section-number-4">1.1.5</span> Override `it`</h4>
+<div class="outline-text-4" id="text-1-1-5">
+
+
+
+
+
+<pre class="example"># `done()` registers with `it`
+myTest.done(it: (description, testFn) -&gt; ...)
+</pre>
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> Context</h3>
+<div class="outline-text-3" id="text-1-2">
+
+
+<p>
+Context is passed between steps.
+</p>
+<p>
+CAVEAT: Each step has its own context object, with values from
+previous contexts copied across. This creates unexpected behaviour
+when trying to set values inside the context from inside a closure.
+</p>
+<p>
+If you create a function within a step, and call it later, it's lexical scope points to an old context.
+You can retrieve the latest context through the function `getContext`
+held within each context object.
+</p>
+<p>
+Writing to a previous context object does not carry over to the rest:
+</p>
+
+
+
+<pre class="example">steps = gwt.steps
+  GIVEN: 'a given': -&gt;
+    context = this
+    @setBar = -&gt;
+      context.bar = 'x'
+
+  WHEN: 'an action is taken': -&gt;
+    @setBar()
+    assert.equal @bar, 'x', 'Set in the wrong context' # -&gt; ERROR
+
+steps
+  .given 'a given'
+  .when 'an action is taken'
+  .run (err) -&gt; ...
+</pre>
+
+
+<p>
+To get this to work, use getContext, which returns the current
+context.
+</p>
+
+
+
+<pre class="example">steps = gwt.steps
+  GIVEN: 'a given': -&gt;
+    context = this
+    @setBar = -&gt;
+      context.getContext().bar = 'x'
+
+  WHEN: 'an action is taken': -&gt;
+    @setBar()
+    assert.equal @bar, 'x', 'Set in the wrong context' # -&gt; PASS
+
+steps
+  .given 'a given'
+  .when 'an action is taken'
+  .run (err) -&gt; ...
+</pre>
+
+</div>
+
+</div>
+
+<div id="outline-container-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> Asynchronous steps</h3>
+<div class="outline-text-3" id="text-1-3">
+
+
+
+</div>
+
+<div id="outline-container-1-3-1" class="outline-4">
+<h4 id="sec-1-3-1"><span class="section-number-4">1.3.1</span> Steps can return promises:</h4>
+<div class="outline-text-4" id="text-1-3-1">
+
+
+<p>
+If the return value of a step is a promise, it will
+be used to chain onto the following steps.
+</p>
+
+
+
+<pre class="example">Q = require 'q'
+steps = gwt.steps
+  GIVEN: 'a precondition': -&gt;
+    deferred = Q.defer()
+    setTimeout (-&gt; deferred.resolve()), 1000
+    return deferred.promise
+
+steps.run()
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1-3-2" class="outline-4">
+<h4 id="sec-1-3-2"><span class="section-number-4">1.3.2</span> Steps can use callbacks:</h4>
+<div class="outline-text-4" id="text-1-3-2">
+
+
+<p>
+If the return value of a step is a function, it is assumed
+to be an asynchronous function and called with a callback which
+will resume execution of following steps when it is called.
+</p>
+
+
+
+<pre class="example">steps = gwt.steps
+  GIVEN: 'a precondition': -&gt; (cb) -&gt;
+    setTimeout (-&gt; cb()), 1000
+
+steps.run()
+</pre>
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-1-4" class="outline-3">
+<h3 id="sec-1-4"><span class="section-number-3">1.4</span> Results can be retrieved from and passed back into steps</h3>
+<div class="outline-text-3" id="text-1-4">
+
+
+<p>
+`gwt.result()` produces a placeholder that carries information via
+the context across steps, but provides us with an external reference.
+</p>
+
+</div>
+
+<div id="outline-container-1-4-1" class="outline-4">
+<h4 id="sec-1-4-1"><span class="section-number-4">1.4.1</span> Single results can be returned from and passed into steps</h4>
+<div class="outline-text-4" id="text-1-4-1">
+
+
+
+
+
+<pre class="example">baz  = gwt.result()
+
+steps = gwt.steps
+  WHEN: 'baz is created': -&gt;
+    return baz: 'xyz'
+
+  THEN: 'baz can be used': ({baz}) -&gt;
+    assert.deepEqual baz, baz: 'xyz'
+
+steps
+  .when('baz is created').resultTo(baz)
+  .then('baz can be used', {baz})
+  .run (err) -&gt;
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1-4-2" class="outline-4">
+<h4 id="sec-1-4-2"><span class="section-number-4">1.4.2</span> Multiple results can be passed into steps</h4>
+<div class="outline-text-4" id="text-1-4-2">
+
+
+
+
+
+<pre class="example">baz = gwt.result()
+foo = gwt.result()
+
+steps = gwt.steps
+  WHEN:
+    'baz is created': -&gt;
+      return 'xyz'
+
+    'foo is created': -&gt; (cb) -&gt;
+      cb null, 'foo'
+
+  THEN: 'results can be used': ({baz, foo}) -&gt;
+    assert.equal baz, 'xyz'
+    assert.equal foo, 'foo'
+
+steps
+  .when('baz is created').resultTo(baz)
+  .then('results can be used', {baz, foo})
+  .run (err) -&gt; ...
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1-4-3" class="outline-4">
+<h4 id="sec-1-4-3"><span class="section-number-4">1.4.3</span> Multiple results can be returned from steps</h4>
+<div class="outline-text-4" id="text-1-4-3">
+
+
+
+
+
+<pre class="example">baz = gwt.result()
+foo = gwt.result()
+
+steps = gwt.steps
+  WHEN:
+    'foo and baz are created': -&gt;
+      return foo: 'foo', baz: 'xyz'
+
+  THEN: 'results can be used': ({baz, foo}) -&gt;
+    assert.equal baz, 'xyz'
+    assert.equal foo, 'foo'
+
+steps
+  .when('foo and baz are created').resultTo({baz, foo})
+  .then('results can be used', {baz, foo})
+  .run (err) -&gt; ...
+</pre>
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-1-5" class="outline-3">
+<h3 id="sec-1-5"><span class="section-number-3">1.5</span> Steps can be combined from multiple declarations</h3>
+<div class="outline-text-3" id="text-1-5">
+
+
+<p>
+Calls to `gwt.steps(&hellip;).given().when().then()` produce a runner,
+which
+can be combined with other runners using `gwt.combine(runner1,
+runner2, &hellip;)` to produce another runner, so that any level of nesting
+is possible.
+</p>
+
+
+
+<pre class="example">steps1 = gwt.steps
+  GIVEN: 'one': -&gt;
+  THEN: 'two': -&gt;
+
+steps2 = gwt.steps
+  GIVEN: 'three': -&gt;
+  WHEN: 'four': -&gt;
+  THEN: 'five': -&gt;
+
+gwt.combine(
+  steps1
+    .given 'one'
+    .then 'two'
+
+  steps2
+    .given 'three'
+    .when 'four'
+    .then 'five'
+).run (err) -&gt; ...
+
+</pre>
+
+</div>
+</div>
+</div>
+</div>
+
+<div id="postamble">
+<p class="date">Date: 2015-04-02T23:32+1100</p>
+<p class="author">Author: tristan</p>
+<p class="creator"><a href="http://orgmode.org">Org</a> version 7.9.3f with <a href="http://www.gnu.org/software/emacs/">Emacs</a> version 24</p>
+<a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
+
+</div>
+</body>
+</html>
