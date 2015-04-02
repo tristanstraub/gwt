@@ -244,13 +244,56 @@ the context across steps, but provides us with an external reference.
     .run (err) -> ...
 #+END_SRC
 
-** Steps can be combined from multiple declarations
+*** Results can be permanently overriden with `set`
+
+If you call `result.set` with a value, any time it is passed
+to a step, it will be substituted with the given value.
+
+You can call `set` inside or outside a step.
+
+#+BEGIN_SRC coffee
+  value = gwt.result()
+  value.set 'xyz'
+
+  steps = gwt.steps
+    THEN: 'result can be used': ({value}) ->
+      assert.equal baz, 'xyz'
+
+  steps
+    .then('result can be used', {value})
+    .run (err) -> ...
+#+END_SRC
+
+*** Use `tap()` instead of `result.set`
+
+Using `tap()` provides a less permanent way of setting a result
+placeholder value.
+
+#+BEGIN_SRC coffee
+  baz = gwt.result()
+
+  steps = gwt.steps
+    THEN:
+      'baz has been set': ({baz}) ->
+        assert.equal baz, 'xyz'
+
+  steps
+    .tap(({baz} -> return 'xyz'), {baz})
+    .then 'baz has been set', {baz}
+    .run (err) -> ...
+#+END_SRC
+
+
+** Steps can be combined from multiple declarations using `gwt.combine(...)`
 
 Calls to `gwt.steps(...).given().when().then()` produce a runner,
 which
 can be combined with other runners using `gwt.combine(runner1,
 runner2, ...)` to produce another runner, so that any level of nesting
 is possible.
+
+NOTE: Context does not get copied between combined runners. However,
+result placeholders do carry values across combined runners.
 
 #+BEGIN_SRC coffee
   steps1 = gwt.steps
@@ -273,4 +316,23 @@ is possible.
       .then 'five'
   ).run (err) -> ...
 
+#+END_SRC
+
+** Insert a custom function call without a step declaration (debugging)
+
+You can access context and result values by providing a function
+instead of a description to the `steps.tap()` function
+
+#+BEGIN_SRC coffee
+  baz = gwt.result()
+
+  steps = gwt.steps
+    WHEN:
+      'baz is created': ->
+        return 'xyz'
+
+  steps
+    .when('baz is created').resultTo(baz)
+    .tap(({baz} -> console.log baz), {baz})
+    .run (err) -> ...
 #+END_SRC
