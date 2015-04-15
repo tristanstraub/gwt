@@ -186,13 +186,17 @@ describeScenario = (spec, {only, counts}) ->
       then: (fn) ->
         return promiseBuilderFactory chain: chain.push fn
 
-      resolve: (buildPromiseChain, args...) ->
+      resolve: ({buildPromiseChain, descriptionBuilder}, context) ->
+        assert descriptionBuilder
+
         deferred = Q.defer()
-        deferred.resolve args...
-        return buildPromiseChain {promise: deferred.promise, chain}
+        deferred.resolve context
+        return buildPromiseChain {promise: deferred.promise, chain, descriptionBuilder}
     }
 
-  buildPromiseChain = ({promise, chain}) ->
+  buildPromiseChain = ({descriptionBuilder, promise, chain}) ->
+    assert descriptionBuilder
+
     chain.forEach (thenFn) -> promise = promise.then thenFn
     return promise
 
@@ -200,7 +204,7 @@ describeScenario = (spec, {only, counts}) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
 
     run = (options, done) ->
-      {bddIt, multipleIt, descriptionBuilder} = options ? {}
+      {bddIt, multipleIt} = options ? {}
 
       bodyFn = (done) ->
         finish = ->
@@ -213,7 +217,7 @@ describeScenario = (spec, {only, counts}) ->
 
         currentContext = null
         updateContext = -> currentContext = this
-        return promiseBuilder.resolve(buildPromiseChain, {getContext: (-> currentContext), updateContext})
+        return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder}, {getContext: (-> currentContext), updateContext})
           .then(finish)
           .fail(fail)
 
@@ -279,7 +283,7 @@ describeScenario = (spec, {only, counts}) ->
         updateContext = -> currentContext = this
         newContext = {getContext: (-> currentContext), updateContext}
         crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
-        rightBdd.promiseBuilder.resolve(buildPromiseChain, newContext)
+        rightBdd.promiseBuilder.resolve({buildPromiseChain, descriptionBuilder}, newContext)
 
       return bdd(descriptionBuilder.combine(rightBdd.descriptionBuilder), nextPromiseBuilder)
 
