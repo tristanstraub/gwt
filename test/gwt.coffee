@@ -1,3 +1,5 @@
+require 'coffee-errors'
+
 async = require 'async'
 bdd = require '../src'
 sinon = require 'sinon'
