@@ -112,6 +112,29 @@ describe 'bdd', ->
         assert steps.THEN['I expect a result ${expectation}'].calledWith expectation: 'three'
         done()
 
+  describe 'with substitutions', ->
+    feature = ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition ${condition}': sinon.spy ({condition}) ->
+          THEN: 'a thing': ->
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition ${condition}', condition: 'one'
+            .then 'a thing'
+
+    describe 'with done(multipleIt: true)', ->
+      it 'should produce multiple `it` statements per step', (done) ->
+        feature().runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+          assert.equal bddIt.callCount, 2, '`it` not called the expected amount of times'
+          assert.equal bddIt.getCall(0).args[0], 'Given a condition one'
+          assert.equal bddIt.getCall(1).args[0], 'a thing'
+          done()
+
+      it 'should produce multiple `it` statements per step when combined'
+      it 'should allow each step to get context from the previous step'
+
 
   describe 'with promises', ->
     feature = (onCalled) ->
@@ -673,9 +696,9 @@ createRunner = ->
   bddIt = sinon.spy (name, fn) ->
     tests.push fn
 
-  runWithIt = ({runner}, cb) ->
+  runWithIt = ({runner, multipleIt}, cb) ->
     # Side effect: calls `it`, because `steps.done` is called inside scenario()
-    runner.done it: bddIt
+    runner.done it: bddIt, multipleIt: multipleIt
 
     async.series tests, cbw(cb) ->
       cb null, {bddIt, tests}
@@ -698,10 +721,11 @@ buildTestRunner = ({runner, steps}) ->
 
       run {runner}, cb
 
-    runWithIt: (cb) ->
+    runWithIt: ([options]..., cb) ->
+      {multipleIt} = options ? {}
       {runWithIt} = createRunner()
 
-      runWithIt {runner}, cb
+      runWithIt {runner, multipleIt}, cb
 
     combine: (suffixRunners...) ->
       return buildTestRunner {steps, runner: bdd.combine(runner, suffixRunners.map((s) -> s.runner)...)}
