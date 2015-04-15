@@ -87,6 +87,7 @@ describe 'bdd', ->
 
     it 'should call `it` with description', (done) ->
       feature().runWithIt cbw(done) ({bddIt}) ->
+        assert.equal bddIt.callCount, 1, '`bddIt` not called often enough'
         assert.equal bddIt.getCall(0).args[0],
           'Given a condition one, when something is done two, then I expect a result three'
         done()
