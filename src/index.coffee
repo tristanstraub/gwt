@@ -186,19 +186,21 @@ describeScenario = (spec, {only, counts}) ->
       then: (fn) ->
         return promiseBuilderFactory chain: chain.push fn
 
-      resolve: (args...) ->
+      resolve: (buildPromiseChain, args...) ->
         deferred = Q.defer()
         deferred.resolve args...
-        promise = deferred.promise
-        chain.forEach (thenFn) -> promise = promise.then thenFn
-        return promise
+        return buildPromiseChain {promise: deferred.promise, chain}
     }
+
+  buildPromiseChain = ({promise, chain}) ->
+    chain.forEach (thenFn) -> promise = promise.then thenFn
+    return promise
 
   bdd = (descriptionBuilder, promiseBuilder) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
 
     run = (options, done) ->
-      {bddIt, descriptionBuilder} = options ? {}
+      {bddIt, multipleIt, descriptionBuilder} = options ? {}
 
       bodyFn = (done) ->
         finish = ->
@@ -211,14 +213,18 @@ describeScenario = (spec, {only, counts}) ->
 
         currentContext = null
         updateContext = -> currentContext = this
-        return promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
+        return promiseBuilder.resolve(buildPromiseChain, {getContext: (-> currentContext), updateContext})
           .then(finish)
           .fail(fail)
 
       if bddIt
         assert descriptionBuilder, '`bddIt` requires descriptionBuilder'
         assert !done, 'Done cannot be provided for `bddIt`'
-        bddIt descriptionBuilder.get(), bodyFn
+        if multipleIt
+
+          bddIt descriptionBuilder.get(), bodyFn
+        else
+          bddIt descriptionBuilder.get(), bodyFn
       else
         bodyFn done
 
@@ -273,15 +279,15 @@ describeScenario = (spec, {only, counts}) ->
         updateContext = -> currentContext = this
         newContext = {getContext: (-> currentContext), updateContext}
         crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
-        rightBdd.promiseBuilder.resolve(newContext)
+        rightBdd.promiseBuilder.resolve(buildPromiseChain, newContext)
 
       return bdd(descriptionBuilder.combine(rightBdd.descriptionBuilder), nextPromiseBuilder)
 
-    done: ({it: bddIt} = {}) ->
+    done: ({multipleIt, it: bddIt} = {}) ->
       bddIt ?= global.it
       bddIt = if only then bddIt.only.bind(bddIt) else bddIt
 
-      run {descriptionBuilder, bddIt}
+      run {descriptionBuilder, bddIt, multipleIt}
 
   return bdd(buildDescription(), promiseBuilderFactory())
 
