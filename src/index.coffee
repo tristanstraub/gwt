@@ -1,6 +1,5 @@
 # TODO do promiseBuilder chaining at the very end, when done is called, because the composibility is
 # broken.
-
 Q = require 'q'
 _ = require 'lodash'
 assert = require 'assert'
@@ -198,26 +197,36 @@ describeScenario = (spec, {only, counts}) ->
   bdd = (descriptionBuilder, promiseBuilder) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
 
-    run = (done) ->
-      finish = ->
-        spec.done?()
-        done?()
+    run = (options, done) ->
+      {bddIt, descriptionBuilder} = options ? {}
 
-      fail = (err) ->
-        if done then return done err
-        throw err
+      bodyFn = (done) ->
+        finish = ->
+          spec.done?()
+          done?()
 
-      currentContext = null
-      updateContext = -> currentContext = this
-      return promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
-        .then(finish)
-        .fail(fail)
+        fail = (err) ->
+          if done then return done err
+          throw err
+
+        currentContext = null
+        updateContext = -> currentContext = this
+        return promiseBuilder.resolve({getContext: (-> currentContext), updateContext})
+          .then(finish)
+          .fail(fail)
+
+      if bddIt
+        assert descriptionBuilder, '`bddIt` requires descriptionBuilder'
+        assert !done, 'Done cannot be provided for `bddIt`'
+        bddIt descriptionBuilder.get(), bodyFn
+      else
+        bodyFn done
 
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
     descriptionBuilder: descriptionBuilder
 
-    run: run
+    run: (cb) -> run {}, cb
 
     resultTo: (result) ->
       bdd(descriptionBuilder,
@@ -272,7 +281,7 @@ describeScenario = (spec, {only, counts}) ->
       bddIt ?= global.it
       bddIt = if only then bddIt.only.bind(bddIt) else bddIt
 
-      bddIt descriptionBuilder.get(), run
+      run {descriptionBuilder, bddIt}
 
   return bdd(buildDescription(), promiseBuilderFactory())
 
