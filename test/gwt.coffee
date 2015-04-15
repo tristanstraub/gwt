@@ -10,6 +10,8 @@ callAndPromise = (asyncFunction) ->
 
 
 describe 'bdd', ->
+  @timeout 500
+
   describe 'tap()', ->
     feature = (cb) ->
       return declareStepsAndScenario
