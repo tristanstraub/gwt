@@ -19,7 +19,7 @@ test:
 test-watch:
 	@./node_modules/mocha/bin/mocha \
 		--require coffee-script/register \
-		-w \
+		-w --watch-extensions coffee\
 		test/*.coffee
 
 publish: test build
