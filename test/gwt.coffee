@@ -658,6 +658,12 @@ describe 'bdd', ->
           assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
           done()
 
+  describe 'return value is module', ->
+    it 'should not fail', (done) ->
+      bdd.steps(GIVEN: 'a given': -> require './support/testModule')
+        .given('a given')
+        .run done
+
 
 createRunner = ->
   tests = []
