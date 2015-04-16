@@ -153,7 +153,7 @@ lastResult = makeResult()
 describeScenario = (spec, {only, counts}) ->
   {GIVEN, WHEN, THEN, DONE} = spec
 
-  getter = (name, collection) -> (description) ->
+  stepRunnerFactory = (name, collection) -> (description) ->
     fn = if typeof(description) isnt 'function' then collection[description] else description
 
     if !fn then throw new Error "'#{name}' doesn't contain '#{description}'"
@@ -176,10 +176,10 @@ describeScenario = (spec, {only, counts}) ->
         else
           nextStep result
 
-  getGiven = getter 'GIVEN', GIVEN
-  getWhen = getter 'WHEN', WHEN
-  getThen = getter 'THEN', THEN
-  getTap = getter 'TAP'
+  getGiven = stepRunnerFactory 'GIVEN', GIVEN
+  getWhen = stepRunnerFactory 'WHEN', WHEN
+  getThen = stepRunnerFactory 'THEN', THEN
+  getTap = stepRunnerFactory 'TAP'
 
   buildContext = ->
     currentContext = null
@@ -189,7 +189,6 @@ describeScenario = (spec, {only, counts}) ->
   handlers = (done) ->
     finish: ->
       # TODO deprecate this or move
-      spec.done?()
       done?()
 
     fail: (err) ->
@@ -199,25 +198,41 @@ describeScenario = (spec, {only, counts}) ->
   buildPromiseChain = ({descriptionBuilder, promise, chain, multipleIt, bddIt}) ->
     if bddIt
       if multipleIt
-        chain.forEach ({thenFn, description}, index) ->
-          bddIt "#{description}", (done) ->
-            console.log "Execute promise #{index} #{description}"
-            promise = promise.then(thenFn)
-            if index < chain.count() - 1
-              promise.then(-> done())
-              promise.fail(done)
-            else
-              {finish, fail} = handlers done
-              promise.then(finish).fail(fail)
+        # Group into chains of non description..., description, non description...
+        [chains, currentChain] = chain.reduce ([chains, currentChain, previousDescription], {thenFn, description}) ->
+          assert.equal typeof thenFn, 'function'
+          if description and previousDescription
+            # A new chain group
+            chains = chains.concat([currentChain])
+            currentChain = []
+
+          currentChain = currentChain.concat([{thenFn, description}])
+
+          return [chains, currentChain, previousDescription or description]
+        , [[], []]
+
+        if currentChain.length
+          chains = chains.concat([currentChain])
+
+        chains[chains.length - 1].push(thenFn: -> spec.done?())
+
+        chains.forEach (chain, chainsIndex) ->
+          bddIt "#{chain[0].description}", (done) ->
+            chain.forEach ({thenFn}) -> promise = promise.then(thenFn)
+            promise
+              .then(-> done())
+              .fail(done)
       else
         assert descriptionBuilder
 
         bddIt descriptionBuilder.get(), (done) ->
-          {finish, fail} = handlers done
-
           chain.forEach ({thenFn}) -> promise = promise.then thenFn
 
-          promise.then(finish).fail(fail)
+          {finish, fail} = handlers done
+
+          promise
+            .then(finish)
+            .fail(fail)
 
     else
       chain.forEach ({thenFn}) -> promise = promise.then thenFn
@@ -229,15 +244,17 @@ describeScenario = (spec, {only, counts}) ->
       then: ({thenFn, description}) ->
         return promiseBuilderFactory chain: chain.push {thenFn: thenFn, description}
 
+      chain: chain
+
       combine: ({descriptionBuilder, promiseBuilder: rightPromiseBuilder}) ->
         thenFn = (context) ->
           newContext = buildContext()
           crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
-          rightPromiseBuilder.resolve({buildPromiseChain, descriptionBuilder}, newContext)
+          return newContext
 
-        return promiseBuilderFactory chain: chain.push {thenFn: thenFn, description: rightPromiseBuilder.get()}
+        return promiseBuilderFactory chain: chain.push({thenFn}).concat(rightPromiseBuilder.chain)
 
-      resolve: ({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, context) ->
+      resolve: ({descriptionBuilder, bddIt, multipleIt}, context) ->
         bodyFn = ->
           assert descriptionBuilder
 
@@ -255,7 +272,7 @@ describeScenario = (spec, {only, counts}) ->
       {bddIt, multipleIt} = options ? {}
 
       testBodyFn = ->
-        return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, buildContext())
+        return promiseBuilder.resolve({descriptionBuilder, bddIt, multipleIt}, buildContext())
 
       if bddIt
         assert descriptionBuilder, '`bddIt` requires descriptionBuilder'
@@ -264,7 +281,10 @@ describeScenario = (spec, {only, counts}) ->
         return
       else
         {finish, fail} = handlers done
-        return testBodyFn().then(finish).fail(fail)
+        return testBodyFn()
+          .then(finish)
+          .then(-> spec.done?())
+          .fail(fail)
 
 
     # Used by combine for chaining
@@ -298,12 +318,12 @@ describeScenario = (spec, {only, counts}) ->
     when: (description, args...) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.when(description, args),
-        promiseBuilder.then description: expandedDescription, thenFn: (context) -> getWhen(description) context, {description: expandedDescription}, args)
+        promiseBuilder.then description: "when #{expandedDescription}", thenFn: (context) -> getWhen(description) context, {description: expandedDescription}, args)
 
     then: (description, args...) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.then(description, args),
-        promiseBuilder.then description: expandedDescription, thenFn: (context) -> getThen(description) context, {description: expandedDescription}, args)
+        promiseBuilder.then description: "then #{expandedDescription}", thenFn: (context) -> getThen(description) context, {description: expandedDescription}, args)
 
     tap: (fn, args...) ->
       bdd(descriptionBuilder,

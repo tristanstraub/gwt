@@ -131,7 +131,7 @@ describe 'bdd', ->
         feature().runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
           assert.equal bddIt.callCount, 2, "`it` not called the expected amount of times #{bddIt.callCount}"
           assert.equal bddIt.getCall(0).args[0], 'Given a condition one'
-          assert.equal bddIt.getCall(1).args[0], 'a thing'
+          assert.equal bddIt.getCall(1).args[0], 'then a thing'
           done()
 
       it 'should allow each step to get context from the previous step'
@@ -373,7 +373,7 @@ describe 'bdd', ->
           runner
             .then 'the second context', {result}
 
-    it.only 'should produce multiple `it` statements per step when combined', (done) ->
+    it 'should produce multiple `it` statements per step when combined', (done) ->
       ce = cbw done
       {feature1, feature2} = features()
 
@@ -385,7 +385,6 @@ describe 'bdd', ->
         assert.equal bddIt.getCall(0).args[0], 'Given a condition'
         assert.equal bddIt.getCall(1).args[0], 'then the second context'
         done()
-
 
   describe 'resultTo with combine', ->
     features = ->
@@ -680,7 +679,6 @@ describe 'bdd', ->
     feature = ->
       steps:
         GIVEN: 'a condition': ->
-          console.error 'error'
           throw new Error 'condition threw error'
 
       scenario: (runner) ->
