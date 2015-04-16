@@ -214,8 +214,6 @@ describeScenario = (spec, {only, counts}) ->
         if currentChain.length
           chains = chains.concat([currentChain])
 
-        chains[chains.length - 1].push(thenFn: -> spec.done?())
-
         chains.forEach (chain, chainsIndex) ->
           bddIt "#{chain[0].description}", (done) ->
             chain.forEach ({thenFn}) -> promise = promise.then(thenFn)
@@ -283,7 +281,6 @@ describeScenario = (spec, {only, counts}) ->
         {finish, fail} = handlers done
         return testBodyFn()
           .then(finish)
-          .then(-> spec.done?())
           .fail(fail)
 
 

@@ -72,7 +72,6 @@ describe 'bdd', ->
         assert steps.GIVEN['a value'].called
         done()
 
-
   describe 'with substitutions', ->
     feature = ->
       return declareStepsAndScenario
