@@ -188,6 +188,7 @@ describeScenario = (spec, {only, counts}) ->
 
   handlers = (done) ->
     finish: ->
+      # TODO deprecate this or move
       spec.done?()
       done?()
 
@@ -198,12 +199,24 @@ describeScenario = (spec, {only, counts}) ->
   buildPromiseChain = ({descriptionBuilder, promise, chain, multipleIt, bddIt}) ->
     assert descriptionBuilder
     if bddIt
-      bddIt descriptionBuilder.get(), (done) ->
-        {finish, fail} = handlers done
+      if multipleIt
+        chain.forEach (thenFn, index) ->
+          bddIt "#{descriptionBuilder.get()} #{index}", (done) ->
+            console.log "Execute promise #{index}"
+            promise = promise.then(thenFn)
+            if index < chain.count() - 1
+              promise.then(-> done())
+              promise.fail(done)
+            else
+              {finish, fail} = handlers done
+              promise.then(finish).fail(fail)
+      else
+        bddIt descriptionBuilder.get(), (done) ->
+          {finish, fail} = handlers done
 
-        chain.forEach (thenFn) -> promise = promise.then thenFn
+          chain.forEach (thenFn) -> promise = promise.then thenFn
 
-        promise.then(finish).fail(fail)
+          promise.then(finish).fail(fail)
 
     else
       chain.forEach (thenFn) -> promise = promise.then thenFn
