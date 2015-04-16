@@ -72,6 +72,61 @@ describe 'bdd', ->
         assert steps.GIVEN['a value'].called
         done()
 
+
+  describe 'done in steps', ->
+    describe 'with no multipleIt', ->
+      feature = ->
+        return declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': ->
+            done: sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given 'a condition'
+
+      it 'should call steps.done() on finish', (done) ->
+        ({steps} = feature()).runWithIt cbw(done) ({bddIt}) ->
+          assert.equal bddIt.callCount, 1, '`bddIt` not called often enough'
+          assert.equal bddIt.getCall(0).args[0], 'Given a condition'
+          assert steps.done.calledOnce, 'steps.done not called'
+          done()
+
+    describe 'with multipleIt', ->
+      feature = ->
+        return declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': ->
+            done: sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given 'a condition'
+
+      it 'should call steps.done() on finish', (done) ->
+        ({steps} = feature()).runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+          assert.equal bddIt.callCount, 1, '`bddIt` not called often enough'
+          assert.equal bddIt.getCall(0).args[0], 'Given a condition'
+          assert steps.done.calledOnce, 'steps.done not called once'
+          done()
+
+
+    describe 'with run', ->
+      feature = ->
+        return declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': ->
+            done: sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given 'a condition'
+
+      it 'should call steps.done() on finish', (done) ->
+        ({steps} = feature()).run cbw(done) ->
+          assert steps.done.calledOnce, 'steps.done not called once'
+          done()
+
   describe 'with substitutions', ->
     feature = ->
       return declareStepsAndScenario
