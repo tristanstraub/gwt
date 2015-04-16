@@ -119,7 +119,10 @@ describe 'bdd', ->
       return declareStepsAndScenario
         steps:
           GIVEN: 'a condition ${condition}': sinon.spy ({condition}) ->
-          THEN: 'a thing': ->
+            @value = 'a value'
+
+          THEN: 'a thing': sinon.spy ->
+            assert.equal @value, 'a value'
 
         scenario: (runner) ->
           runner
@@ -128,13 +131,16 @@ describe 'bdd', ->
 
     describe 'with done(multipleIt: true)', ->
       it 'should produce multiple `it` statements per step', (done) ->
-        feature().runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+        ({steps} = feature()).runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
           assert.equal bddIt.callCount, 2, "`it` not called the expected amount of times #{bddIt.callCount}"
           assert.equal bddIt.getCall(0).args[0], 'Given a condition one'
           assert.equal bddIt.getCall(1).args[0], 'then a thing'
           done()
 
-      it 'should allow each step to get context from the previous step'
+      it 'should allow each step to get context from the previous step', (done) ->
+        ({steps} = feature()).runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+          assert steps.THEN['a thing'].calledOnce, 'step not called'
+          done()
 
 
   describe 'with promises', ->
