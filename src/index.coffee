@@ -211,9 +211,6 @@ describeScenario = (spec, {only, counts}) ->
     run = (options, done) ->
       {bddIt, multipleIt} = options ? {}
 
-      testBodyFn = ->
-        return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, buildContext())
-
       handlers = (done) ->
         finish: ->
           spec.done?()
@@ -223,15 +220,26 @@ describeScenario = (spec, {only, counts}) ->
           if done then return done err
           throw err
 
+      testBodyFn = (done) ->
+        if bddIt
+          bddIt descriptionBuilder.get(), (done) ->
+            {finish, fail} = handlers done
+
+            return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, buildContext())
+              .then(finish).fail(fail)
+        else
+          {finish, fail} = handlers done
+
+          return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, buildContext())
+            .then(finish).fail(fail)
+
       if bddIt
         assert descriptionBuilder, '`bddIt` requires descriptionBuilder'
         assert !done, 'Done cannot be provided for `bddIt`'
-        bddIt descriptionBuilder.get(), (done) ->
-          {finish, fail} = handlers(done)
-          testBodyFn().then(finish).fail(fail)
+        testBodyFn(done)
+        return
       else
-        {finish, fail} = handlers(done)
-        testBodyFn().then(finish).fail(fail)
+        return testBodyFn(done)
 
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
