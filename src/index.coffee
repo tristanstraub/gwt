@@ -200,8 +200,8 @@ describeScenario = (spec, {only, counts}) ->
     assert descriptionBuilder
     if bddIt
       if multipleIt
-        chain.forEach (thenFn, index) ->
-          bddIt "#{descriptionBuilder.get()} #{index}", (done) ->
+        chain.forEach ({thenFn, description}, index) ->
+          bddIt "#{description}", (done) ->
             console.log "Execute promise #{index}"
             promise = promise.then(thenFn)
             if index < chain.count() - 1
@@ -214,19 +214,27 @@ describeScenario = (spec, {only, counts}) ->
         bddIt descriptionBuilder.get(), (done) ->
           {finish, fail} = handlers done
 
-          chain.forEach (thenFn) -> promise = promise.then thenFn
+          chain.forEach ({thenFn}) -> promise = promise.then thenFn
 
           promise.then(finish).fail(fail)
 
     else
-      chain.forEach (thenFn) -> promise = promise.then thenFn
+      chain.forEach ({thenFn}) -> promise = promise.then thenFn
 
       return promise
 
   promiseBuilderFactory = ({chain} = {chain:  I.List()}) ->
     return {
-      then: (fn) ->
-        return promiseBuilderFactory chain: chain.push fn
+      then: ({thenFn, description}) ->
+        return promiseBuilderFactory chain: chain.push {thenFn: thenFn, description}
+
+      combine: (rightPromiseBuilder) ->
+        thenFn = (context) ->
+          newContext = buildContext()
+          crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
+          rightPromiseBuilder.resolve({buildPromiseChain, descriptionBuilder}, newContext)
+
+        return promiseBuilderFactory chain: chain.push {thenFn: thenFn, description: ''}
 
       resolve: ({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, context) ->
         bodyFn = ->
@@ -266,7 +274,7 @@ describeScenario = (spec, {only, counts}) ->
 
     resultTo: (result) ->
       bdd(descriptionBuilder,
-        promiseBuilder.then (context) ->
+        promiseBuilder.then description: '', thenFn: (context) ->
           results = crossCombineResults.getFromContext(context) ? {}
           lastResultValue = lastResult.getFromContext(context)
 
@@ -284,32 +292,26 @@ describeScenario = (spec, {only, counts}) ->
     given: (description, args...) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.given(description, args),
-        promiseBuilder.then (context) -> getGiven(description) context, {description: expandedDescription}, args)
+        promiseBuilder.then description: "Given #{expandedDescription}", thenFn: (context) -> getGiven(description) context, {description: expandedDescription}, args)
 
     when: (description, args...) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.when(description, args),
-        promiseBuilder.then (context) -> getWhen(description) context, {description: expandedDescription}, args)
+        promiseBuilder.then description: expandedDescription, thenFn: (context) -> getWhen(description) context, {description: expandedDescription}, args)
 
     then: (description, args...) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.then(description, args),
-        promiseBuilder.then (context) -> getThen(description) context, {description: expandedDescription}, args)
+        promiseBuilder.then description: expandedDescription, thenFn: (context) -> getThen(description) context, {description: expandedDescription}, args)
 
     tap: (fn, args...) ->
       bdd(descriptionBuilder,
-        promiseBuilder.then (context) -> getTap(fn) context, {}, args)
+        promiseBuilder.then description: '', thenFn: (context) -> getTap(fn) context, {}, args)
 
     combine: (rightBdd) ->
       assert rightBdd, 'right bdd not defined'
 
-      # TODO chain promiseBuilders after done is called
-      nextPromiseBuilder = promiseBuilder.then (context) ->
-        newContext = buildContext()
-        crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
-        rightBdd.promiseBuilder.resolve({buildPromiseChain, descriptionBuilder}, newContext)
-
-      return bdd(descriptionBuilder.combine(rightBdd.descriptionBuilder), nextPromiseBuilder)
+      return bdd(descriptionBuilder.combine(rightBdd.descriptionBuilder), promiseBuilder.combine rightBdd.promiseBuilder)
 
     done: ({multipleIt, it: bddIt} = {}) ->
       bddIt ?= global.it
