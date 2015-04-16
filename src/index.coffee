@@ -197,7 +197,6 @@ describeScenario = (spec, {only, counts}) ->
       throw err
 
   buildPromiseChain = ({descriptionBuilder, promise, chain, multipleIt, bddIt}) ->
-    assert descriptionBuilder
     if bddIt
       if multipleIt
         chain.forEach ({thenFn, description}, index) ->
@@ -211,6 +210,8 @@ describeScenario = (spec, {only, counts}) ->
               {finish, fail} = handlers done
               promise.then(finish).fail(fail)
       else
+        assert descriptionBuilder
+
         bddIt descriptionBuilder.get(), (done) ->
           {finish, fail} = handlers done
 
@@ -228,7 +229,7 @@ describeScenario = (spec, {only, counts}) ->
       then: ({thenFn, description}) ->
         return promiseBuilderFactory chain: chain.push {thenFn: thenFn, description}
 
-      combine: (rightPromiseBuilder) ->
+      combine: ({descriptionBuilder, promiseBuilder: rightPromiseBuilder}) ->
         thenFn = (context) ->
           newContext = buildContext()
           crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
@@ -311,7 +312,13 @@ describeScenario = (spec, {only, counts}) ->
     combine: (rightBdd) ->
       assert rightBdd, 'right bdd not defined'
 
-      return bdd(descriptionBuilder.combine(rightBdd.descriptionBuilder), promiseBuilder.combine rightBdd.promiseBuilder)
+      newDescriptionBuilder = descriptionBuilder.combine(rightBdd.descriptionBuilder)
+
+      return bdd(newDescriptionBuilder,
+        promiseBuilder.combine {
+          descriptionBuilder: newDescriptionBuilder
+          promiseBuilder: rightBdd.promiseBuilder
+        })
 
     done: ({multipleIt, it: bddIt} = {}) ->
       bddIt ?= global.it
