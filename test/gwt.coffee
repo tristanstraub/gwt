@@ -134,7 +134,6 @@ describe 'bdd', ->
           assert.equal bddIt.getCall(1).args[0], 'a thing'
           done()
 
-      it 'should produce multiple `it` statements per step when combined'
       it 'should allow each step to get context from the previous step'
 
 
@@ -350,6 +349,43 @@ describe 'bdd', ->
       ({steps} = feature(result = bdd.result(), result2 = bdd.result())).runWithIt ce ->
         assert steps.THEN['with the result'].called
         done()
+
+  describe 'multipleIt with combine', ->
+    features = ->
+      result = bdd.result()
+
+      feature1: declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition': sinon.spy ->
+            return 'a result'
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition'
+            .resultTo result
+
+      feature2: declareStepsAndScenario
+        steps:
+          THEN: 'the second context': sinon.spy ({result}) ->
+            assert.equal result, 'a result'
+
+        scenario: (runner) ->
+          runner
+            .then 'the second context', {result}
+
+    it.only 'should produce multiple `it` statements per step when combined', (done) ->
+      ce = cbw done
+      {feature1, feature2} = features()
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+
+      feature1.combine(feature2).runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+        assert.equal bddIt.callCount, 2, "`it` not called the expected amount of times #{bddIt.callCount}"
+        assert.equal bddIt.getCall(0).args[0], 'Given a condition'
+        assert.equal bddIt.getCall(1).args[0], 'then the second context'
+        done()
+
 
   describe 'resultTo with combine', ->
     features = ->

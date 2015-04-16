@@ -201,7 +201,7 @@ describeScenario = (spec, {only, counts}) ->
       if multipleIt
         chain.forEach ({thenFn, description}, index) ->
           bddIt "#{description}", (done) ->
-            console.log "Execute promise #{index}"
+            console.log "Execute promise #{index} #{description}"
             promise = promise.then(thenFn)
             if index < chain.count() - 1
               promise.then(-> done())
@@ -235,7 +235,7 @@ describeScenario = (spec, {only, counts}) ->
           crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
           rightPromiseBuilder.resolve({buildPromiseChain, descriptionBuilder}, newContext)
 
-        return promiseBuilderFactory chain: chain.push {thenFn: thenFn, description: ''}
+        return promiseBuilderFactory chain: chain.push {thenFn: thenFn, description: rightPromiseBuilder.get()}
 
       resolve: ({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, context) ->
         bodyFn = ->
