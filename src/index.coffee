@@ -181,20 +181,25 @@ describeScenario = (spec, {only, counts}) ->
   getThen = getter 'THEN', THEN
   getTap = getter 'TAP'
 
+  buildContext = ->
+    currentContext = null
+    updateContext = -> currentContext = this
+    return {getContext: (-> currentContext), updateContext}
+
   promiseBuilderFactory = ({chain} = {chain:  I.List()}) ->
     return {
       then: (fn) ->
         return promiseBuilderFactory chain: chain.push fn
 
-      resolve: ({buildPromiseChain, descriptionBuilder}, context) ->
+      resolve: ({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, context) ->
         assert descriptionBuilder
 
         deferred = Q.defer()
         deferred.resolve context
-        return buildPromiseChain {promise: deferred.promise, chain, descriptionBuilder}
+        return buildPromiseChain {promise: deferred.promise, chain, descriptionBuilder, bddIt, multipleIt}
     }
 
-  buildPromiseChain = ({descriptionBuilder, promise, chain}) ->
+  buildPromiseChain = ({descriptionBuilder, promise, chain, multipleIt, bddIt}) ->
     assert descriptionBuilder
 
     chain.forEach (thenFn) -> promise = promise.then thenFn
@@ -206,31 +211,27 @@ describeScenario = (spec, {only, counts}) ->
     run = (options, done) ->
       {bddIt, multipleIt} = options ? {}
 
-      bodyFn = (done) ->
-        finish = ->
+      testBodyFn = ->
+        return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, buildContext())
+
+      handlers = (done) ->
+        finish: ->
           spec.done?()
           done?()
 
-        fail = (err) ->
+        fail: (err) ->
           if done then return done err
           throw err
-
-        currentContext = null
-        updateContext = -> currentContext = this
-        return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder}, {getContext: (-> currentContext), updateContext})
-          .then(finish)
-          .fail(fail)
 
       if bddIt
         assert descriptionBuilder, '`bddIt` requires descriptionBuilder'
         assert !done, 'Done cannot be provided for `bddIt`'
-        if multipleIt
-
-          bddIt descriptionBuilder.get(), bodyFn
-        else
-          bddIt descriptionBuilder.get(), bodyFn
+        bddIt descriptionBuilder.get(), (done) ->
+          {finish, fail} = handlers(done)
+          testBodyFn().then(finish).fail(fail)
       else
-        bodyFn done
+        {finish, fail} = handlers(done)
+        testBodyFn().then(finish).fail(fail)
 
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
@@ -279,9 +280,7 @@ describeScenario = (spec, {only, counts}) ->
 
       # TODO chain promiseBuilders after done is called
       nextPromiseBuilder = promiseBuilder.then (context) ->
-        currentContext = null
-        updateContext = -> currentContext = this
-        newContext = {getContext: (-> currentContext), updateContext}
+        newContext = buildContext()
         crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
         rightBdd.promiseBuilder.resolve({buildPromiseChain, descriptionBuilder}, newContext)
 
