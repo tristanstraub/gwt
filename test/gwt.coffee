@@ -73,6 +73,60 @@ describe 'bdd', ->
         done()
 
 
+  describe 'done in steps', ->
+    describe 'with no multipleIt', ->
+      feature = ->
+        return declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': ->
+            done: sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given 'a condition'
+
+      it 'should call steps.done() on finish', (done) ->
+        ({steps} = feature()).runWithIt cbw(done) ({bddIt}) ->
+          assert.equal bddIt.callCount, 1, '`bddIt` not called often enough'
+          assert.equal bddIt.getCall(0).args[0], 'Given a condition'
+          assert steps.done.calledOnce, 'steps.done not called'
+          done()
+
+    describe 'with multipleIt', ->
+      feature = ->
+        return declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': ->
+            done: sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given 'a condition'
+
+      it 'should call steps.done() on finish', (done) ->
+        ({steps} = feature()).runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+          assert.equal bddIt.callCount, 1, '`bddIt` not called often enough'
+          assert.equal bddIt.getCall(0).args[0], 'Given a condition'
+          assert steps.done.calledOnce, 'steps.done not called once'
+          done()
+
+
+    describe 'with run', ->
+      feature = ->
+        return declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': ->
+            done: sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given 'a condition'
+
+      it 'should call steps.done() on finish', (done) ->
+        ({steps} = feature()).run cbw(done) ->
+          assert steps.done.calledOnce, 'steps.done not called once'
+          done()
+
   describe 'with substitutions', ->
     feature = ->
       return declareStepsAndScenario
@@ -119,7 +173,10 @@ describe 'bdd', ->
       return declareStepsAndScenario
         steps:
           GIVEN: 'a condition ${condition}': sinon.spy ({condition}) ->
-          THEN: 'a thing': ->
+            @value = 'a value'
+
+          THEN: 'a thing': sinon.spy ->
+            assert.equal @value, 'a value'
 
         scenario: (runner) ->
           runner
@@ -128,14 +185,16 @@ describe 'bdd', ->
 
     describe 'with done(multipleIt: true)', ->
       it 'should produce multiple `it` statements per step', (done) ->
-        feature().runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
-          assert.equal bddIt.callCount, 2, '`it` not called the expected amount of times'
+        ({steps} = feature()).runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+          assert.equal bddIt.callCount, 2, "`it` not called the expected amount of times #{bddIt.callCount}"
           assert.equal bddIt.getCall(0).args[0], 'Given a condition one'
-          assert.equal bddIt.getCall(1).args[0], 'a thing'
+          assert.equal bddIt.getCall(1).args[0], 'then a thing'
           done()
 
-      it 'should produce multiple `it` statements per step when combined'
-      it 'should allow each step to get context from the previous step'
+      it 'should allow each step to get context from the previous step', (done) ->
+        ({steps} = feature()).runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+          assert steps.THEN['a thing'].calledOnce, 'step not called'
+          done()
 
 
   describe 'with promises', ->
@@ -349,6 +408,42 @@ describe 'bdd', ->
       ce = cbw done
       ({steps} = feature(result = bdd.result(), result2 = bdd.result())).runWithIt ce ->
         assert steps.THEN['with the result'].called
+        done()
+
+  describe 'multipleIt with combine', ->
+    features = ->
+      result = bdd.result()
+
+      feature1: declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition': sinon.spy ->
+            return 'a result'
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition'
+            .resultTo result
+
+      feature2: declareStepsAndScenario
+        steps:
+          THEN: 'the second context': sinon.spy ({result}) ->
+            assert.equal result, 'a result'
+
+        scenario: (runner) ->
+          runner
+            .then 'the second context', {result}
+
+    it 'should produce multiple `it` statements per step when combined', (done) ->
+      ce = cbw done
+      {feature1, feature2} = features()
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+
+      feature1.combine(feature2).runWithIt {multipleIt: true}, cbw(done) ({bddIt}) ->
+        assert.equal bddIt.callCount, 2, "`it` not called the expected amount of times #{bddIt.callCount}"
+        assert.equal bddIt.getCall(0).args[0], 'Given a condition'
+        assert.equal bddIt.getCall(1).args[0], 'then the second context'
         done()
 
   describe 'resultTo with combine', ->
@@ -644,7 +739,6 @@ describe 'bdd', ->
     feature = ->
       steps:
         GIVEN: 'a condition': ->
-          console.error 'error'
           throw new Error 'condition threw error'
 
       scenario: (runner) ->
