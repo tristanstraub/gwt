@@ -195,6 +195,21 @@ describeScenario = (spec, {only, counts}) ->
       if done then return done err
       throw err
 
+  buildPromiseChain = ({descriptionBuilder, promise, chain, multipleIt, bddIt}) ->
+    assert descriptionBuilder
+    if bddIt
+      bddIt descriptionBuilder.get(), (done) ->
+        {finish, fail} = handlers done
+
+        chain.forEach (thenFn) -> promise = promise.then thenFn
+
+        promise.then(finish).fail(fail)
+
+    else
+      chain.forEach (thenFn) -> promise = promise.then thenFn
+
+      return promise
+
   promiseBuilderFactory = ({chain} = {chain:  I.List()}) ->
     return {
       then: (fn) ->
@@ -210,21 +225,6 @@ describeScenario = (spec, {only, counts}) ->
 
         bodyFn()
     }
-
-  buildPromiseChain = ({descriptionBuilder, promise, chain, multipleIt, bddIt}) ->
-    assert descriptionBuilder
-    if bddIt
-      bddIt descriptionBuilder.get(), (done) ->
-        {finish, fail} = handlers done
-
-        chain.forEach (thenFn) -> promise = promise.then thenFn
-
-        promise.then(finish).fail(fail)
-
-    else
-      chain.forEach (thenFn) -> promise = promise.then thenFn
-
-      return promise
 
   bdd = (descriptionBuilder, promiseBuilder) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
