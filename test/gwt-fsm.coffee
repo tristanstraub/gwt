@@ -44,26 +44,45 @@ describe 'Simple steps', ->
 
     # fn: function to apply to real state
     ACTIONS = [
+      pre: ({modelSteps}) -> modelSteps.given?
       fn: (steps) -> steps.given 'one'
       modelFn: (modelSteps) -> modelSteps.given 'one'
+      post: ({modelSteps, steps}) ->
     ,
+      pre: ({modelSteps}) -> modelSteps.when?
       fn: (steps) -> steps.when 'two'
       modelFn: (modelSteps) -> modelSteps.when 'two'
+      post: ({modelSteps, steps}) ->
     ,
+      pre: ({modelSteps}) -> modelSteps.then?
       fn: (steps) -> steps.then 'three'
       modelFn: (modelSteps) -> modelSteps.then 'three'
+      post: ({modelSteps, steps}) ->
     ]
     assert.equal ACTIONS.length, 3, 'actions has 3'
 
-    indexGenerator = generators.integer(0, ACTIONS.length - 1)
+    stepActionGenerator = ({modelSteps}) ->
+      ACTIONS.filter (a) -> a.pre {modelSteps}
+      ACTIONS[generators.integer(0, ACTIONS.length - 1)()]
 
-    stepActionGenerator = -> ACTIONS[indexGenerator()]
-
-    actions = generators.array(10, stepActionGenerator)()
+    actions = []
+    lastAction = null
+    modelSteps = ModelSteps()
+    for i in [0..10]
+      lastAction = stepActionGenerator({modelSteps})
+      while not lastAction.pre {modelSteps}
+        lastAction = stepActionGenerator({modelSteps})
+      actions.push lastAction
+      modelSteps = lastAction.modelFn(modelSteps)
 
     {steps, modelSteps} = actions.reduce ({steps, modelSteps}, action) ->
-      steps: action.fn(steps)
-      modelSteps: action.modelFn(modelSteps)
+      next =
+        steps: action.fn(steps)
+        modelSteps: action.modelFn(modelSteps)
+
+      action.post next
+
+      return next
     , {steps, modelSteps: ModelSteps()}
 
     steps.run cbw(done) ->
