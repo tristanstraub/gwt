@@ -186,24 +186,45 @@ describeScenario = (spec, {only, counts}) ->
     updateContext = -> currentContext = this
     return {getContext: (-> currentContext), updateContext}
 
+  handlers = (done) ->
+    finish: ->
+      spec.done?()
+      done?()
+
+    fail: (err) ->
+      if done then return done err
+      throw err
+
   promiseBuilderFactory = ({chain} = {chain:  I.List()}) ->
     return {
       then: (fn) ->
         return promiseBuilderFactory chain: chain.push fn
 
       resolve: ({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, context) ->
-        assert descriptionBuilder
+        bodyFn = ->
+          assert descriptionBuilder
 
-        deferred = Q.defer()
-        deferred.resolve context
-        return buildPromiseChain {promise: deferred.promise, chain, descriptionBuilder, bddIt, multipleIt}
+          deferred = Q.defer()
+          deferred.resolve context
+          return buildPromiseChain {promise: deferred.promise, chain, descriptionBuilder, bddIt, multipleIt}
+
+        bodyFn()
     }
 
   buildPromiseChain = ({descriptionBuilder, promise, chain, multipleIt, bddIt}) ->
     assert descriptionBuilder
+    if bddIt
+      bddIt descriptionBuilder.get(), (done) ->
+        {finish, fail} = handlers done
 
-    chain.forEach (thenFn) -> promise = promise.then thenFn
-    return promise
+        chain.forEach (thenFn) -> promise = promise.then thenFn
+
+        promise.then(finish).fail(fail)
+
+    else
+      chain.forEach (thenFn) -> promise = promise.then thenFn
+
+      return promise
 
   bdd = (descriptionBuilder, promiseBuilder) ->
     assert promiseBuilder, 'bdd required promiseBuilder'
@@ -211,35 +232,18 @@ describeScenario = (spec, {only, counts}) ->
     run = (options, done) ->
       {bddIt, multipleIt} = options ? {}
 
-      handlers = (done) ->
-        finish: ->
-          spec.done?()
-          done?()
-
-        fail: (err) ->
-          if done then return done err
-          throw err
-
-      testBodyFn = (done) ->
-        if bddIt
-          bddIt descriptionBuilder.get(), (done) ->
-            {finish, fail} = handlers done
-
-            return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, buildContext())
-              .then(finish).fail(fail)
-        else
-          {finish, fail} = handlers done
-
-          return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, buildContext())
-            .then(finish).fail(fail)
+      testBodyFn = ->
+        return promiseBuilder.resolve({buildPromiseChain, descriptionBuilder, bddIt, multipleIt}, buildContext())
 
       if bddIt
         assert descriptionBuilder, '`bddIt` requires descriptionBuilder'
         assert !done, 'Done cannot be provided for `bddIt`'
-        testBodyFn(done)
+        testBodyFn()
         return
       else
-        return testBodyFn(done)
+        {finish, fail} = handlers done
+        return testBodyFn().then(finish).fail(fail)
+
 
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
