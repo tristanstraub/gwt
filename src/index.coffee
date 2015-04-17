@@ -217,7 +217,7 @@ describeScenario = (spec, {only, counts}) ->
         chains[chains.length - 1].push(thenFn: -> spec.done?())
 
         chains.forEach (chain, chainsIndex) ->
-          bddIt "#{chain[0].description}", (done) ->
+          bddIt "#{_.find(chain, (c) -> c.description).description}", (done) ->
             chain.forEach ({thenFn}) -> promise = promise.then(thenFn)
             promise
               .then(-> done())
