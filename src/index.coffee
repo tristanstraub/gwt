@@ -274,8 +274,11 @@ describeScenario = (spec, {only, counts}) ->
         bodyFn()
     }
 
-  bdd = (descriptionBuilder, promiseBuilder) ->
+  bdd = (descriptionBuilder, promiseBuilder, options) ->
+    assert options, 'Must call bdd with options'
     assert promiseBuilder, 'bdd required promiseBuilder'
+
+    {skippedUntilHere} = options
 
     run = (options, done) ->
       {bddIt, multipleIt} = options ? {}
@@ -299,6 +302,7 @@ describeScenario = (spec, {only, counts}) ->
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
     descriptionBuilder: descriptionBuilder
+    skippedUntilHere: skippedUntilHere
 
     run: (cb) -> run {}, cb
 
@@ -317,37 +321,49 @@ describeScenario = (spec, {only, counts}) ->
               r.setInContext results, lastResultValue[rkey]
 
           crossCombineResults.setInContext context, results
-          context)
+          context
+        options)
 
     given: (description, args...) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.given(description, args),
-        promiseBuilder.then description: "Given #{expandedDescription}", thenFn: (context) -> getGiven(description) context, {description: expandedDescription}, args)
+        promiseBuilder.then description: "Given #{expandedDescription}", thenFn: (context) -> getGiven(description) context, {description: expandedDescription}, args
+        options)
 
     when: (description, args...) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.when(description, args),
-        promiseBuilder.then description: "when #{expandedDescription}", thenFn: (context) -> getWhen(description) context, {description: expandedDescription}, args)
+        promiseBuilder.then description: "when #{expandedDescription}", thenFn: (context) -> getWhen(description) context, {description: expandedDescription}, args
+        options)
 
     then: (description, args...) ->
       expandedDescription = interpolate description, args
       bdd(descriptionBuilder.then(description, args),
-        promiseBuilder.then description: "then #{expandedDescription}", thenFn: (context) -> getThen(description) context, {description: expandedDescription}, args)
+        promiseBuilder.then description: "then #{expandedDescription}", thenFn: (context) -> getThen(description) context, {description: expandedDescription}, args
+        options)
 
     tap: (fn, args...) ->
       bdd(descriptionBuilder,
-        promiseBuilder.then description: '', thenFn: (context) -> getTap(fn) context, {}, args)
+        promiseBuilder.then description: '', thenFn: (context) -> getTap(fn) context, {}, args
+        options)
 
     combine: (rightBdd) ->
       assert rightBdd, 'right bdd not defined'
 
+      if rightBdd.skippedUntilHere then return rightBdd
+
       newDescriptionBuilder = descriptionBuilder.combine(rightBdd.descriptionBuilder)
 
-      return bdd(newDescriptionBuilder,
+      return bdd(
+        newDescriptionBuilder
         promiseBuilder.combine {
           descriptionBuilder: newDescriptionBuilder
           promiseBuilder: rightBdd.promiseBuilder
-        })
+        }
+        options)
+
+    skipUntilHere: ->
+      bdd(buildDescription(), promiseBuilderFactory(), _.extend {}, options, skippedUntilHere: true)
 
     done: ({multipleIt, it: bddIt} = {}) ->
       bddIt ?= global.it
@@ -355,7 +371,7 @@ describeScenario = (spec, {only, counts}) ->
 
       run {descriptionBuilder, bddIt, multipleIt}
 
-  return bdd(buildDescription(), promiseBuilderFactory())
+  return bdd(buildDescription(), promiseBuilderFactory(), {})
 
 interpolate = (description, args) ->
   kw = _.last(args)
