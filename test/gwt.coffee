@@ -1,5 +1,3 @@
-require 'coffee-errors'
-
 async = require 'async'
 gwt = require '../src'
 sinon = require 'sinon'
@@ -1009,6 +1007,71 @@ describe 'gwt', ->
           assert steps3.WHEN['something happens'].calledOnce
           assert steps3.THEN['expect this'].calledOnce
           done()
+
+
+
+  describe 'given step can return runner', ->
+    features = ->
+      testSteps: testSteps = GIVEN: 'test': sinon.spy ->
+
+      feature1: declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition': gwt.steps(testSteps).given('test')
+
+        scenario: (runner) ->
+          runner
+            .given('a condition')
+
+    it 'should run nested step', (done) ->
+      ce = cbw done
+      {testSteps, feature1} = features()
+
+      ({steps} = feature1).runWithIt ce ->
+        assert testSteps.GIVEN['test'].calledOnce
+        done()
+
+
+
+  describe 'when step can return runner', ->
+    features = ->
+      testSteps: testSteps = GIVEN: 'test': sinon.spy ->
+
+      feature1: declareStepsAndScenario
+        steps:
+          WHEN: 'a condition': gwt.steps(testSteps).given('test')
+
+        scenario: (runner) ->
+          runner
+            .when('a condition')
+
+    it 'should run nested step', (done) ->
+      ce = cbw done
+      {testSteps, feature1} = features()
+
+      ({steps} = feature1).runWithIt ce ->
+        assert testSteps.GIVEN['test'].calledOnce
+        done()
+
+
+  describe 'then step can return runner', ->
+    features = ->
+      testSteps: testSteps = GIVEN: 'test': sinon.spy ->
+
+      feature1: declareStepsAndScenario
+        steps:
+          THEN: 'a condition': gwt.steps(testSteps).given('test')
+
+        scenario: (runner) ->
+          runner
+            .then('a condition')
+
+    it 'should run nested step', (done) ->
+      ce = cbw done
+      {testSteps, feature1} = features()
+
+      ({steps} = feature1).runWithIt ce ->
+        assert testSteps.GIVEN['test'].calledOnce
+        done()
 
 
 createRunner = ->

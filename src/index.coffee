@@ -103,6 +103,9 @@ getCounts = (spec) ->
       }
   }
 
+isRunner = (fn) ->
+  return fn._isRunner
+
 buildDescription = (fullDescription = '') ->
   given: (rest, args) ->
     if fullDescription
@@ -156,6 +159,8 @@ describeScenario = (spec, {only, counts}) ->
   stepRunnerFactory = (name, collection) -> (description) ->
     fn = if typeof(description) isnt 'function' then collection[description] else description
 
+    if isRunner(fn) then return fn
+
     if !fn then throw new Error "'#{name}' doesn't contain '#{description}'"
     return (context, extraContext, args) ->
       # Isolate from previous context.
@@ -165,7 +170,6 @@ describeScenario = (spec, {only, counts}) ->
       Q(fn.apply newContext, resolveResultArray(crossCombineResults.getFromContext(context) ? {}, args)).then (result) ->
         nextStep = (result) ->
           # Pipe result to resultTo
-          # TODO use Result for this
           lastResult.setInContext(newContext, result)
           counts[name].called description
           # fn mutated context
@@ -299,6 +303,8 @@ describeScenario = (spec, {only, counts}) ->
           .fail(fail)
 
 
+    _isRunner: true
+
     # Used by combine for chaining
     promiseBuilder: promiseBuilder
     descriptionBuilder: descriptionBuilder
@@ -326,20 +332,35 @@ describeScenario = (spec, {only, counts}) ->
 
     given: (description, args...) ->
       expandedDescription = interpolate description, args
+      given = getGiven(description)
+
+      if isRunner(given)
+        return @combine given
+
       bdd(descriptionBuilder.given(description, args),
-        promiseBuilder.then description: "Given #{expandedDescription}", thenFn: (context) -> getGiven(description) context, {description: expandedDescription}, args
+        promiseBuilder.then description: "Given #{expandedDescription}", thenFn: (context) -> given context, {description: expandedDescription}, args
         options)
 
     when: (description, args...) ->
       expandedDescription = interpolate description, args
+      whenFn = getWhen(description)
+
+      if isRunner(whenFn)
+        return @combine whenFn
+
       bdd(descriptionBuilder.when(description, args),
-        promiseBuilder.then description: "when #{expandedDescription}", thenFn: (context) -> getWhen(description) context, {description: expandedDescription}, args
+        promiseBuilder.then description: "when #{expandedDescription}", thenFn: (context) -> whenFn context, {description: expandedDescription}, args
         options)
 
     then: (description, args...) ->
       expandedDescription = interpolate description, args
+      thenFn = getThen(description)
+
+      if isRunner(thenFn)
+        return @combine thenFn
+
       bdd(descriptionBuilder.then(description, args),
-        promiseBuilder.then description: "then #{expandedDescription}", thenFn: (context) -> getThen(description) context, {description: expandedDescription}, args
+        promiseBuilder.then description: "then #{expandedDescription}", thenFn: (context) -> thenFn context, {description: expandedDescription}, args
         options)
 
     tap: (fn, args...) ->
