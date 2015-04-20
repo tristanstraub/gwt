@@ -1,7 +1,7 @@
 require 'coffee-errors'
 
 async = require 'async'
-bdd = require '../src'
+gwt = require '../src'
 sinon = require 'sinon'
 assert = require 'assert'
 Q = require 'q'
@@ -11,7 +11,7 @@ callAndPromise = (asyncFunction) ->
   return Q.denodeify(asyncFunction)()
 
 
-describe 'bdd', ->
+describe 'gwt', ->
   @timeout 500
 
   describe 'tap()', ->
@@ -32,7 +32,7 @@ describe 'bdd', ->
 
   describe 'tap()', ->
     feature = (cb) ->
-      result = bdd.result()
+      result = gwt.result()
 
       return declareStepsAndScenario
         steps:
@@ -52,7 +52,7 @@ describe 'bdd', ->
 
   describe 'tap() as first call', ->
     feature = (cb) ->
-      result = bdd.result()
+      result = gwt.result()
 
       return declareStepsAndScenario
         steps:
@@ -271,7 +271,7 @@ describe 'bdd', ->
 
     it 'should resolve the result object before passing to the next step', (done) ->
       ce = cbw done
-      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).runWithIt ce ->
+      ({steps} = feature(result = gwt.result(), result2 = gwt.result())).runWithIt ce ->
         assert steps.THEN['with the result'].called
         done()
 
@@ -294,14 +294,14 @@ describe 'bdd', ->
 
     it 'should resolve the nested result object before passing to the next step', (done) ->
       ce = cbw done
-      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).runWithIt ce ->
+      ({steps} = feature(result = gwt.result(), result2 = gwt.result())).runWithIt ce ->
         assert steps.THEN['with the result'].called
         done()
 
   describe 'with resultTo nested', ->
     feature = ->
-      first = bdd.result()
-      second = bdd.result()
+      first = gwt.result()
+      second = gwt.result()
 
       return declareStepsAndScenario
         steps:
@@ -332,8 +332,8 @@ describe 'bdd', ->
 
   describe 'with resultTo nested with callback', ->
     feature = ->
-      first = bdd.result()
-      second = bdd.result()
+      first = gwt.result()
+      second = gwt.result()
 
       return declareStepsAndScenario
         steps:
@@ -377,7 +377,7 @@ describe 'bdd', ->
 
     it 'should destructure the result into object attributes', (done) ->
       ce = cbw done
-      feature(result = bdd.result(), one = bdd.result(), two = bdd.result()).runWithIt ce ->
+      feature(result = gwt.result(), one = gwt.result(), two = gwt.result()).runWithIt ce ->
 
         done()
 
@@ -406,13 +406,13 @@ describe 'bdd', ->
 
     it 'should resolve to overriden value from result.set()', (done) ->
       ce = cbw done
-      ({steps} = feature(result = bdd.result(), result2 = bdd.result())).runWithIt ce ->
+      ({steps} = feature(result = gwt.result(), result2 = gwt.result())).runWithIt ce ->
         assert steps.THEN['with the result'].called
         done()
 
   describe 'multipleIt with combine', ->
     features = ->
-      result = bdd.result()
+      result = gwt.result()
 
       feature1: declareStepsAndScenario
         steps:
@@ -448,7 +448,7 @@ describe 'bdd', ->
 
   describe 'multipleIt with combine and tap', ->
     features = ->
-      result = bdd.result()
+      result = gwt.result()
 
       feature1: declareStepsAndScenario
         steps:
@@ -485,7 +485,7 @@ describe 'bdd', ->
 
   describe 'resultTo with combine', ->
     features = ->
-      result = bdd.result()
+      result = gwt.result()
 
       feature1: declareStepsAndScenario
         steps:
@@ -650,7 +650,7 @@ describe 'bdd', ->
 
       {steps: steps1} = feature1
 
-      bdd.combine(feature1).runWithIt ce ->
+      gwt.combine(feature1).runWithIt ce ->
         assert steps1.GIVEN['a condition ${condition}'].called, 'First feature steps not called'
         done()
 
@@ -787,7 +787,7 @@ describe 'bdd', ->
 
       {steps, scenario} = feature()
 
-      scenario(bdd.steps(steps)).run().fail (err) ->
+      scenario(gwt.steps(steps)).run().fail (err) ->
         assert /condition threw error/.test err
         assert err instanceof Error
         done()
@@ -797,20 +797,20 @@ describe 'bdd', ->
 
       {steps, scenario} = feature()
 
-      scenario(bdd.steps(steps)).run (err) ->
+      scenario(gwt.steps(steps)).run (err) ->
         assert /condition threw error/.test err
         assert err instanceof Error
         done()
 
 
-  describe 'bdd.steps(steps)', ->
+  describe 'gwt.steps(steps)', ->
     steps =
       GIVEN: 'a condition ${condition}': sinon.spy ({@condition}) ->
 
-    it 'should product the same result as bdd.accordingTo(-> steps).getRunner()', (done) ->
+    it 'should product the same result as gwt.accordingTo(-> steps).getRunner()', (done) ->
       ce = cbw done
 
-      bdd.steps(steps)
+      gwt.steps(steps)
         .given 'a condition ${condition}', condition: 'one'
         .run ce ->
           assert steps.GIVEN['a condition ${condition}'].calledOnce
@@ -819,9 +819,196 @@ describe 'bdd', ->
 
   describe 'return value is module', ->
     it 'should not fail', (done) ->
-      bdd.steps(GIVEN: 'a given': -> require './support/testModule')
+      gwt.steps(GIVEN: 'a given': -> require './support/testModule')
         .given('a given')
         .run done
+
+
+  describe 'runner.skipUntilHere()', ->
+    describe 'without combine', ->
+      feature = ->
+        return declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': sinon.spy ->
+            WHEN: 'something happens': sinon.spy ->
+            THEN: 'expect this': sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given('a condition')
+              .skipUntilHere()
+              .when('something happens')
+              .then('expect this')
+
+      it 'should run only those steps upto and after the skipUntilHere() call', (done) ->
+        ce = cbw done
+        ({steps} = feature()).run ce ->
+          assert !steps.GIVEN['a condition'].called
+          assert steps.WHEN['something happens'].calledOnce
+          assert steps.THEN['expect this'].calledOnce
+          done()
+
+
+
+    describe 'with combine and skip in first runner', ->
+      features = ->
+        feature1: declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': sinon.spy ->
+            WHEN: 'something happens': sinon.spy ->
+            THEN: 'expect this': sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given('a condition')
+              .skipUntilHere()
+              .when('something happens')
+              .then('expect this')
+
+        feature2: declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': sinon.spy ->
+            WHEN: 'something happens': sinon.spy ->
+            THEN: 'expect this': sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given('a condition')
+              .when('something happens')
+              .then('expect this')
+
+      it 'should run only those steps upto and after the skipUntilHere() call', (done) ->
+        ce = cbw done
+        {feature1, feature2} = features()
+
+        {steps: steps1} = feature1
+        {steps: steps2} = feature2
+
+        feature1.combine(feature2).runWithIt ce ->
+          assert !steps1.GIVEN['a condition'].called
+          assert steps1.WHEN['something happens'].calledOnce
+          assert steps1.THEN['expect this'].calledOnce
+          assert steps2.GIVEN['a condition'].calledOnce
+          assert steps2.WHEN['something happens'].calledOnce
+          assert steps2.THEN['expect this'].calledOnce
+          done()
+
+
+    describe 'with combine and skip in second runner', ->
+      features = ->
+        feature1: declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': sinon.spy ->
+            WHEN: 'something happens': sinon.spy ->
+            THEN: 'expect this': sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given('a condition')
+              .when('something happens')
+              .then('expect this')
+
+        feature2: declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': sinon.spy ->
+            WHEN: 'something happens': sinon.spy ->
+            THEN: 'expect this': sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given('a condition')
+              .skipUntilHere()
+              .when('something happens')
+              .then('expect this')
+
+      it 'should run only those steps upto and after the skipUntilHere() call', (done) ->
+        ce = cbw done
+        {feature1, feature2} = features()
+
+        {steps: steps1, runner: runner1} = feature1
+        {steps: steps2, runner: runner2} = feature2
+
+        assert !runner1.skippedUntilHere, 'skippedUntilHere'
+        assert runner2.skippedUntilHere, 'Not skippedUntilHere'
+
+        combined = feature1.combine(feature2)
+        assert combined.runner.skippedUntilHere, 'Combined not skippedUntilHere'
+
+        combined.runWithIt ce ->
+          assert !steps1.GIVEN['a condition'].called
+          assert !steps1.WHEN['something happens'].called
+          assert !steps1.THEN['expect this'].called
+          assert !steps2.GIVEN['a condition'].called
+          assert steps2.WHEN['something happens'].calledOnce
+          assert steps2.THEN['expect this'].calledOnce
+          done()
+
+
+    describe 'with multiple combine and skip in second runner', ->
+      features = ->
+        feature1: declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': sinon.spy ->
+            WHEN: 'something happens': sinon.spy ->
+            THEN: 'expect this': sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given('a condition')
+              .when('something happens')
+              .then('expect this')
+
+        feature2: declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': sinon.spy ->
+            WHEN: 'something happens': sinon.spy ->
+            THEN: 'expect this': sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given('a condition')
+              .skipUntilHere()
+              .when('something happens')
+              .then('expect this')
+
+        feature3: declareStepsAndScenario
+          steps:
+            GIVEN: 'a condition': sinon.spy ->
+            WHEN: 'something happens': sinon.spy ->
+            THEN: 'expect this': sinon.spy ->
+
+          scenario: (runner) ->
+            runner
+              .given('a condition')
+              .when('something happens')
+              .then('expect this')
+
+      it 'should run only those steps upto and after the skipUntilHere() call', (done) ->
+        ce = cbw done
+        {feature1, feature2, feature3} = features()
+
+        {steps: steps1, runner: runner1} = feature1
+        {steps: steps2, runner: runner2} = feature2
+        {steps: steps3, runner: runner3} = feature3
+
+        assert !runner1.skippedUntilHere, 'skippedUntilHere'
+        assert runner2.skippedUntilHere, 'Not skippedUntilHere'
+        assert !runner3.skippedUntilHere, 'Not skippedUntilHere'
+
+        combined = feature1.combine(feature2).combine(feature3)
+        assert combined.runner.skippedUntilHere, 'Combined not skippedUntilHere'
+
+        combined.runWithIt ce ->
+          assert !steps1.GIVEN['a condition'].called
+          assert !steps1.WHEN['something happens'].called
+          assert !steps1.THEN['expect this'].called
+          assert !steps2.GIVEN['a condition'].called
+          assert steps2.WHEN['something happens'].calledOnce
+          assert steps2.THEN['expect this'].calledOnce
+          assert steps3.GIVEN['a condition'].calledOnce
+          assert steps3.WHEN['something happens'].calledOnce
+          assert steps3.THEN['expect this'].calledOnce
+          done()
 
 
 createRunner = ->
@@ -861,10 +1048,10 @@ buildTestRunner = ({runner, steps}) ->
       runWithIt {runner, multipleIt}, cb
 
     combine: (suffixRunners...) ->
-      return buildTestRunner {steps, runner: bdd.combine(runner, suffixRunners.map((s) -> s.runner)...)}
+      return buildTestRunner {steps, runner: gwt.combine(runner, suffixRunners.map((s) -> s.runner)...)}
   }
 
 declareStepsAndScenario = ({steps, scenario}) ->
   assert steps
   assert scenario
-  return buildTestRunner {steps, runner: scenario(bdd.accordingTo(-> steps).getRunner())}
+  return buildTestRunner {steps, runner: scenario(gwt.accordingTo(-> steps).getRunner())}
