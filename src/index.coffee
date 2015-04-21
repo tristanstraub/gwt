@@ -159,9 +159,10 @@ describeScenario = (spec, {only, counts}) ->
   stepRunnerFactory = (name, collection) -> (description) ->
     fn = if typeof(description) isnt 'function' then collection[description] else description
 
+    if !fn then throw new Error "'#{name}' doesn't contain '#{description}'"
+
     if isRunner(fn) then return fn
 
-    if !fn then throw new Error "'#{name}' doesn't contain '#{description}'"
     return (context, extraContext, args) ->
       # Isolate from previous context.
       newContext = _.extend {}, context, extraContext
