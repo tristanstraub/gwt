@@ -1,5 +1,5 @@
 async = require 'async'
-gwt = require '../../src/v1'
+gwt = require '../../src'
 sinon = require 'sinon'
 assert = require 'assert'
 Q = require 'q'
