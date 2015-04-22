@@ -540,6 +540,84 @@ describe 'gwt', ->
         done()
 
 
+  describe 'done(world: {})', ->
+    features = ->
+      result = gwt.result()
+
+      feature1: declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition': sinon.spy ->
+            return 'a result'
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition'
+            .resultTo result
+
+      feature2: declareStepsAndScenario
+        steps:
+          THEN: 'the second context': sinon.spy ({result}) ->
+            assert.equal result, 'a result'
+
+        scenario: (runner) ->
+          runner
+            .then 'the second context', {result}
+
+    it 'should use world as the context across combine', (done) ->
+      ce = cbw done
+      {feature1, feature2} = features()
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+
+      world = {}
+
+      feature1.runWithIt {world}, ce ->
+        assert steps1.GIVEN['a condition'].called, 'First feature steps not called'
+        feature2.runWithIt {world}, ce ->
+          assert steps2.THEN['the second context'].called, 'Second feature steps not called'
+          done()
+
+
+  describe 'run(world: {})', ->
+    features = ->
+      result = gwt.result()
+
+      feature1: declareStepsAndScenario
+        steps:
+          GIVEN: 'a condition': sinon.spy ->
+            return 'a result'
+
+        scenario: (runner) ->
+          runner
+            .given 'a condition'
+            .resultTo result
+
+      feature2: declareStepsAndScenario
+        steps:
+          THEN: 'the second context': sinon.spy ({result}) ->
+            assert.equal result, 'a result'
+
+        scenario: (runner) ->
+          runner
+            .then 'the second context', {result}
+
+    it 'should use world as the context across combine', (done) ->
+      ce = cbw done
+      {feature1, feature2} = features()
+
+      {steps: steps1} = feature1
+      {steps: steps2} = feature2
+
+      world = {ok: '!'}
+
+      feature1.run {world}, ce ->
+        assert steps1.GIVEN['a condition'].called, 'First feature steps not called'
+        feature2.run {world}, ce ->
+          assert steps2.THEN['the second context'].called, 'Second feature steps not called'
+          done()
+
+
   describe 'combine() context', ->
     features = ->
       feature1: declareStepsAndScenario
@@ -1079,15 +1157,15 @@ createRunner = ->
   bddIt = sinon.spy (name, fn) ->
     tests.push fn
 
-  runWithIt = ({runner, multipleIt}, cb) ->
+  runWithIt = ({runner, multipleIt, world}, cb) ->
     # Side effect: calls `it`, because `steps.done` is called inside scenario()
-    runner.done it: bddIt, multipleIt: multipleIt
+    runner.done it: bddIt, multipleIt: multipleIt, world: world
 
     async.series tests, cbw(cb) ->
       cb null, {bddIt, tests}
 
-  run = ({runner}, cb) ->
-    runner.run cb
+  run = ({runner, world}, cb) ->
+    runner.run {world}, cb
 
   return {bddIt, tests, runWithIt, run}
 
@@ -1099,16 +1177,16 @@ buildTestRunner = ({runner, steps}) ->
     steps
     runner
 
-    run: (cb) ->
+    run: ([options]..., cb) ->
+      {world} = options ? {}
       {run} = createRunner()
-
-      run {runner}, cb
+      run {world, runner}, cb
 
     runWithIt: ([options]..., cb) ->
-      {multipleIt} = options ? {}
+      {multipleIt, world} = options ? {}
       {runWithIt} = createRunner()
 
-      runWithIt {runner, multipleIt}, cb
+      runWithIt {runner, multipleIt, world}, cb
 
     combine: (suffixRunners...) ->
       return buildTestRunner {steps, runner: gwt.combine(runner, suffixRunners.map((s) -> s.runner)...)}

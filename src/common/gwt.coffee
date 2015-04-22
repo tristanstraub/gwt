@@ -170,9 +170,13 @@ configure = ({exports, options}) ->
       if isRunner(fn) then return fn
 
       return (context, extraContext, args) ->
-        # Isolate from previous context.
-        newContext = _.extend {}, context, extraContext
-        newContext.updateContext()
+        if !options.sharedContext
+          # Isolate from previous context.
+          newContext = _.extend {}, context, extraContext
+          newContext.updateContext()
+        else
+          newContext = _.extend context, extraContext
+
         # resolve promises contained in args. Use inplace replacement for the moment.
         Q(fn.apply newContext, resolveResultArray(crossCombineResults.getFromContext(context) ? {}, args)).then (result) ->
           nextStep = (result) ->
@@ -193,6 +197,8 @@ configure = ({exports, options}) ->
     getTap = stepRunnerFactory 'TAP'
 
     buildContext = ->
+      if options.sharedContext then return {}
+
       currentContext = null
       updateContext = -> currentContext = this
       return {getContext: (-> currentContext), updateContext}
@@ -294,10 +300,10 @@ configure = ({exports, options}) ->
       {skippedUntilHere} = options
 
       run = (options, done) ->
-        {bddIt, multipleIt} = options ? {}
+        {bddIt, multipleIt, world} = options ? {}
 
         testBodyFn = ->
-          return promiseBuilder.resolve({descriptionBuilder, bddIt, multipleIt}, buildContext())
+          return promiseBuilder.resolve({descriptionBuilder, bddIt, multipleIt}, world ? buildContext())
 
         if bddIt
           assert descriptionBuilder, '`bddIt` requires descriptionBuilder'
@@ -319,7 +325,9 @@ configure = ({exports, options}) ->
       descriptionBuilder: descriptionBuilder
       skippedUntilHere: skippedUntilHere
 
-      run: (cb) -> run {}, cb
+      run: ([options]..., cb) ->
+        options ?= {}
+        run options, cb
 
       resultTo: (result) ->
         bdd(descriptionBuilder,
@@ -395,11 +403,11 @@ configure = ({exports, options}) ->
       skipUntilHere: ->
         bdd(buildDescription(), promiseBuilderFactory(), _.extend {}, options, skippedUntilHere: true)
 
-      done: ({multipleIt, it: bddIt} = {}) ->
+      done: ({multipleIt, world, it: bddIt} = {}) ->
         bddIt ?= global.it
         bddIt = if only then bddIt.only.bind(bddIt) else bddIt
 
-        run {descriptionBuilder, bddIt, multipleIt}
+        run {descriptionBuilder, bddIt, multipleIt, world}
 
     return bdd(buildDescription(), promiseBuilderFactory(), {})
 
