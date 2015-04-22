@@ -6,7 +6,12 @@ assert = require 'assert'
 I = require 'immutable'
 uuid = require 'node-uuid'
 
-configure = ({exports}) ->
+configure = ({exports, options}) ->
+  assert exports, 'Exports object required'
+  assert options, 'Options object required'
+
+  # options.sharedContext : when true, context is shared across combine
+
   class Result
     constructor: (@id) ->
       assert @id, 'Result id not given'
@@ -263,6 +268,8 @@ configure = ({exports}) ->
 
         combine: ({descriptionBuilder, promiseBuilder: rightPromiseBuilder}) ->
           thenFn = (context) ->
+            if options.sharedContext then return context
+
             newContext = buildContext()
             crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
             return newContext
@@ -404,4 +411,4 @@ configure = ({exports}) ->
 
   return exports
 
-module.exports = -> configure(exports: {})
+module.exports = (options) -> configure(exports: {}, options: options)
