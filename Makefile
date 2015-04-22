@@ -1,4 +1,4 @@
-VERSION=0.0.1
+VERSION=1.0.0
 
 all: build
 
@@ -14,13 +14,16 @@ clean:
 test:
 	@./node_modules/mocha/bin/mocha \
 		--require coffee-script/register \
-		test/*.coffee
+		--recursive \
+		"test/**/*.coffee"
 
 test-watch:
 	@./node_modules/mocha/bin/mocha \
 		--require coffee-script/register \
+		--recursive \
 		-w --watch-extensions coffee\
-		test/*.coffee
+		"test/**/*.coffee"
+
 
 publish: test build
 	tar -zcvf ./gwt-$(VERSION).tgz -C .. gwt/package.json gwt/lib gwt/README.md

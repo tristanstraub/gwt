@@ -4,7 +4,7 @@
 require 'coffee-errors'
 
 async = require 'async'
-gwt = require '../src'
+gwt = require '../../src'
 sinon = require 'sinon'
 assert = require 'assert'
 Q = require 'q'

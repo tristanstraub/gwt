@@ -1,5 +1,5 @@
 async = require 'async'
-gwt = require '../src'
+gwt = require '../../src/v1'
 sinon = require 'sinon'
 assert = require 'assert'
 Q = require 'q'
@@ -557,13 +557,13 @@ describe 'gwt', ->
       feature2: declareStepsAndScenario
         steps:
           THEN: 'the second context': sinon.spy ->
-            assert !@value
+            assert.equal @value, 'a value'
 
         scenario: (runner) ->
           runner
             .then('the second context')
 
-    it 'should not leak context across combine', (done) ->
+    it 'should share context across combine', (done) ->
       ce = cbw done
       {feature1, feature2} = features()
 
