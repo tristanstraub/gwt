@@ -239,6 +239,8 @@ configure = ({exports, options}) ->
               promise
                 .then(-> done())
                 .fail(done)
+              # Don't return promise, to remain compatible with protractor
+              return
         else
           assert descriptionBuilder
 
@@ -254,6 +256,9 @@ configure = ({exports, options}) ->
                 spec.done?()
                 fail err
               .fail fail
+
+            # Don't return promise, to remain compatible with protractor
+            return
       else
         chain.forEach ({thenFn}) -> promise = promise.then thenFn
 
