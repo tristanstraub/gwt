@@ -6,6 +6,7 @@ assert = require 'assert'
 I = require 'immutable'
 uuid = require 'node-uuid'
 
+# Private configure method, used by different versions of gwt
 configure = ({exports, options}) ->
   assert exports, 'Exports object required'
   assert options, 'Options object required'
@@ -27,6 +28,13 @@ configure = ({exports, options}) ->
 
     set: (@value) ->
       @overriden = true
+
+  # Public configure method
+  exports.configure = ({it: bddIt}) ->
+    return configure {
+      exports
+      options: _.extend({}, configOptions, {bddIt: configOptions.bddIt ? bddIt})
+    }
 
   exports.result = makeResult = (id = uuid.v4())->
     return new Result(id)
@@ -309,6 +317,9 @@ configure = ({exports, options}) ->
       run = (options, done) ->
         {bddIt, multipleIt, world} = options ? {}
 
+        # run/done override config options
+        bddIt ?= configOptions.bddIt
+
         # Default to multiple it blocks for a single runner
         multipleIt ?= configOptions.defaults?.multipleIt
 
@@ -414,7 +425,7 @@ configure = ({exports, options}) ->
         bdd(buildDescription(), promiseBuilderFactory(), _.extend {}, options, skippedUntilHere: true)
 
       done: ({multipleIt, world, it: bddIt} = {}) ->
-        bddIt ?= global.it
+        bddIt ?= configOptions.bddIt ? global.it
         bddIt = if only then bddIt.only.bind(bddIt) else bddIt
 
         run {descriptionBuilder, bddIt, multipleIt, world}

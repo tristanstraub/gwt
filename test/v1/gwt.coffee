@@ -1153,6 +1153,21 @@ describe 'gwt/v1', ->
         assert testSteps.GIVEN['test'].calledOnce
         done()
 
+  describe 'gwt.configure({it: it}).steps(...)...done() overrides bddIt', ->
+    it 'should call `it` which is provided to configure()', ->
+      test = null
+      myIt = sinon.spy (description, fn) ->
+        test = fn
+
+      stepsDef = GIVEN: 'test': sinon.spy ->
+
+      gwt.configure(it: myIt).steps(stepsDef).given('test').done()
+
+      assert myIt.calledOnce
+
+      test ->
+        assert stepsDef.GIVEN['test'].calledOnce, 'test step not called'
+
 
 createRunner = ->
   tests = []
