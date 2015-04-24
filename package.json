@@ -1,5 +1,5 @@
 {
-  "name": "gwt",
+  "name": "given-when-then",
   "version": "1.2.0-alpha",
   "description": "Given, when, then",
   "main": "lib/index.js",
