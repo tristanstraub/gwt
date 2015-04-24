@@ -10,6 +10,8 @@ configure = ({exports, options}) ->
   assert exports, 'Exports object required'
   assert options, 'Options object required'
 
+  configOptions = options
+
   # options.sharedContext : when true, context is shared across combine
 
   class Result
@@ -306,6 +308,9 @@ configure = ({exports, options}) ->
 
       run = (options, done) ->
         {bddIt, multipleIt, world} = options ? {}
+
+        # Default to multiple it blocks for a single runner
+        multipleIt ?= configOptions.defaults?.multipleIt
 
         testBodyFn = ->
           return promiseBuilder.resolve({descriptionBuilder, bddIt, multipleIt}, world ? buildContext())

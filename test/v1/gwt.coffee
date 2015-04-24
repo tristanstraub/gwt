@@ -141,14 +141,15 @@ describe 'gwt/v1', ->
 
     it 'should call `it` with description', (done) ->
       feature().runWithIt cbw(done) ({bddIt}) ->
-        assert.equal bddIt.callCount, 1, '`bddIt` not called often enough'
-        assert.equal bddIt.getCall(0).args[0],
-          'Given a condition one, when something is done two, then I expect a result three'
+        assert.equal bddIt.callCount, 3, '`bddIt` not called often enough'
+        assert.equal bddIt.getCall(0).args[0], 'Given a condition one'
+        assert.equal bddIt.getCall(1).args[0], 'when something is done two'
+        assert.equal bddIt.getCall(2).args[0], 'then I expect a result three'
         done()
 
-    it 'should generate one test', (done) ->
+    it 'should generate multiple tests', (done) ->
       feature().runWithIt cbw(done) ({tests}) ->
-        assert.equal tests.length, 1
+        assert.equal tests.length, 3
         done()
 
     it 'should call GIVEN with substitution', (done) ->
@@ -678,7 +679,8 @@ describe 'gwt/v1', ->
       {feature1, feature2} = features()
 
       feature1.combine(feature2).runWithIt ce ({bddIt}) ->
-        assert.equal bddIt.getCall(0).args[0], 'Given a condition, when something is done'
+        assert.equal bddIt.getCall(0).args[0], 'Given a condition'
+        assert.equal bddIt.getCall(1).args[0], 'when something is done'
         done()
 
   describe 'combine()', ->
