@@ -9,7 +9,7 @@ callAndPromise = (asyncFunction) ->
   return Q.denodeify(asyncFunction)()
 
 
-describe 'gwt', ->
+describe 'gwt/v0', ->
   @timeout 500
 
   describe 'tap()', ->
