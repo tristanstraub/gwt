@@ -28,9 +28,9 @@ the order of execution of these steps is declared:
 See how `this` is bound to a context object that is passed between
 each given/when/then step. Store shared data against `this`.
 
-NOTE: context is a new object in each step, with each key/value pair copied
+NOTE: In version 0.x, context is a new object in each step, with each key/value pair copied
 across to the new context, which is provided to the subsequent
-step. (See below)
+step. (See below). Version 1.x shared context.
 
 *** Building a test
 
