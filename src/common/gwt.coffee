@@ -172,7 +172,7 @@ configure = ({exports, options}) ->
       if isRunner(fn) then return fn
 
       return (context, extraContext, args) ->
-        if !options.sharedContext
+        if !configOptions.sharedContext
           # Isolate from previous context.
           newContext = _.extend {}, context, extraContext
           newContext.updateContext()
@@ -199,7 +199,7 @@ configure = ({exports, options}) ->
     getTap = stepRunnerFactory 'TAP'
 
     buildContext = ->
-      if options.sharedContext then return {}
+      if configOptions.sharedContext then return {}
 
       currentContext = null
       updateContext = -> currentContext = this
@@ -281,7 +281,7 @@ configure = ({exports, options}) ->
 
         combine: ({descriptionBuilder, promiseBuilder: rightPromiseBuilder}) ->
           thenFn = (context) ->
-            if options.sharedContext then return context
+            if configOptions.sharedContext then return context
 
             newContext = buildContext()
             crossCombineResults.setInContext newContext, crossCombineResults.getFromContext context
