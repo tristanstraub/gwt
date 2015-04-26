@@ -1,96 +1,88 @@
 # Test with quickcheck/fsm style checking
 #
-
-require 'coffee-errors'
-
+I = require 'immutable'
 async = require 'async'
 gwt = require '../../src'
 sinon = require 'sinon'
 assert = require 'assert'
 Q = require 'q'
 cbw = require 'cbw'
-{generators} = require 'jsquickcheck'
 
-stepActionGenerator = ({actionMap, modelSteps}) ->
-  actionMap.filter (a) -> a.preCondition {modelSteps}
-  actionMap[generators.integer(0, actionMap.length - 1)()]
+{runTests} = require '../../src/fsm'
 
-describe 'Simple steps', ->
-  do (steps = null) ->
-    steps = gwt.steps
-      GIVEN: 'one': ->
-      WHEN: 'two': ->
-      THEN: 'three': ->
-
-    describe 'multiple it test', ->
-      steps
-        .given 'one'
-        .when 'two'
-        .then 'three'
-        .done(multipleIt: true)
-
-  spec = ->
-    ModelSteps: ModelSteps = (modelOutput = '') ->
-      return {
-        given: (name) -> ModelSteps(modelOutput + name)
-        when: (name) ->  ModelSteps(modelOutput + name)
-        then: (name) ->  ModelSteps(modelOutput + name)
+getSpec = ->
+  return {
+    Model: ->
+      Runner = (modelOutput = '', run = false, steps = true) ->
+        given: if steps then (name) -> Runner(modelOutput + name, true)
+        when: if steps then (name) ->  Runner(modelOutput + name, true)
+        then: if steps then (name) ->  Runner(modelOutput + name, true)
+        run: if run then -> Runner(modelOutput, false, false)
         getModelOutput: -> modelOutput
+
+      StepBuilder = (steps = []) ->
+        add: (type, description) ->
+          StepBuilder(steps.concat [type, description])
+
+      return I.Map steps: StepBuilder(), runner: null, toRunnerModel: ({model}) -> model.set 'runner', Runner()
+
+    Actual: ->
+      output = {value: ''}
+      return I.Map {
+        stepDefinitions:
+          GIVEN: 'one': -> output.value += 'one'
+          WHEN: 'two': -> output.value += 'two'
+          THEN: 'three': -> output.value += 'three'
+        steps: null
+        getOutput: -> output.value
       }
 
-    # fn: function to apply to real state
-    actions: [
-      # Model based preCondition condition
-      preCondition: ({modelSteps}) -> modelSteps.given?
-      # Real update
-      fn: (steps) -> steps.given 'one'
-      # Model update
-      modelFn: (modelSteps) -> modelSteps.given 'one'
-      # Comparison between model and real
-      postCondition: ({modelSteps, steps}) -> true
+    # Get allowable actions
+    getActionMap: ({model}) -> [
+      preCondition: ({model}) -> not model.get('runner')
+      getActions: ({model}) -> [
+        name: 'steps'
+        # fn: function to apply to real state
+        fn: ({actual}) ->
+          return actual: actual.setIn ['steps'], gwt.steps(actual.get('stepDefinitions'))
+
+        modelFn: ({model}) -> model: model.get('toRunnerModel')({model})
+
+        postCondition: ({model, actual}) -> true
+      ]
     ,
-      preCondition: ({modelSteps}) -> modelSteps.when?
-      fn: (steps) -> steps.when 'two'
-      modelFn: (modelSteps) -> modelSteps.when 'two'
-      postCondition: ({modelSteps, steps}) -> true
+      preCondition: ({model}) -> model.get('runner')?.when?
+      getActions: ({model}) -> [
+        name: 'when'
+        # fn: function to apply to real state
+        fn: ({actual}) ->
+          return actual: actual.updateIn ['steps'], (steps) -> steps.when 'two'
+
+        modelFn: ({model}) -> model: model.updateIn ['runner'], (runner) -> runner.when 'two'
+
+        postCondition: ({model, actual}) -> true
+      ]
     ,
-      preCondition: ({modelSteps}) -> modelSteps.then?
-      fn: (steps) -> steps.then 'three'
-      modelFn: (modelSteps) -> modelSteps.then 'three'
-      postCondition: ({modelSteps, steps}) -> true
+      preCondition: ({model}) -> model.get('runner')?.run?
+      getActions: ({model}) -> [
+        name: 'run'
+        fn: ({actual}) ->
+          return Q.denodeify((cb) -> actual.get('steps').run cb)().then -> {actual}
+
+        modelFn: ({model}) -> model: model.updateIn ['runner'], (runner) -> runner.run()
+
+        postCondition: ({model, actual}) ->
+          assert actual, 'Actual'
+          return actual.get('getOutput')() is model.get('runner').getModelOutput()
+      ]
     ]
+  }
+
+describe 'Simple steps', ->
 
   it 'should generate a set of steps', (done) ->
-    output = ''
+    @timeout 1000
 
-    {ModelSteps, actions: actionMap} = spec()
-
-    getActual = ->
-      return gwt.steps
-        GIVEN: 'one': -> output += 'one'
-        WHEN: 'two': -> output += 'two'
-        THEN: 'three': -> output += 'three'
-
-    actions = []
-    lastAction = null
-    modelSteps = ModelSteps()
-    for i in [0..10]
-      lastAction = stepActionGenerator({actionMap, modelSteps})
-      while not lastAction.preCondition {modelSteps}
-        lastAction = stepActionGenerator({actionMap, modelSteps})
-      actions.push lastAction
-      modelSteps = lastAction.modelFn(modelSteps)
-
-    {steps, modelSteps} = actions.reduce ({steps, modelSteps}, action) ->
-      next =
-        steps: action.fn(steps)
-        modelSteps: action.modelFn(modelSteps)
-
-      assert action.postCondition next
-
-      return next
-    , {steps: getActual(), modelSteps: ModelSteps()}
-
-    steps.run cbw(done) ->
-      assert.equal output, modelSteps.getModelOutput()
-      done()
+    runTests(getSpec())
+      .then -> done()
+      .fail (err) -> done err
