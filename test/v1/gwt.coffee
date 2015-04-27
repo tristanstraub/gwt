@@ -28,6 +28,24 @@ describe 'gwt/v1', ->
     it 'allows access to the context', (done) ->
       feature(done).runWithIt done
 
+
+  describe 'call()', ->
+    feature = (cb) ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: 'a value': ->
+            @value = 'this is a value'
+
+        scenario: (runner) ->
+          runner
+            .given('a value')
+            .call ->
+              assert.equal @value, 'this is a value'
+
+    it 'allows access to the context', (done) ->
+      feature(done).runWithIt done
+
+
   describe 'tap()', ->
     feature = (cb) ->
       result = gwt.result()

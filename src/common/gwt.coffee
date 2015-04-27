@@ -401,6 +401,11 @@ configure = ({exports, options}) ->
           promiseBuilder.then description: "then #{expandedDescription}", thenFn: (context) -> thenFn context, {description: expandedDescription}, args
           options)
 
+      call: (fn, args...) ->
+        bdd(descriptionBuilder,
+          promiseBuilder.then description: '', thenFn: (context) -> getTap(fn) context, {}, args
+          options)
+
       tap: (fn, args...) ->
         bdd(descriptionBuilder,
           promiseBuilder.then description: '', thenFn: (context) -> getTap(fn) context, {}, args
