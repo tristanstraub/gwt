@@ -46,6 +46,25 @@ describe 'gwt/v1', ->
       feature(done).runWithIt done
 
 
+  describe 'call() as first call to steps', ->
+    func = sinon.spy()
+
+    feature = (cb) ->
+      return declareStepsAndScenario
+        steps: {}
+
+        scenario: (runner) ->
+          runner.call func
+
+    it 'allows access to the context', (done) ->
+      ce = cbw done
+
+      ({steps} = feature(done)).runWithIt ce ->
+        assert func.calledOnce
+        done()
+
+
+
   describe 'tap()', ->
     feature = (cb) ->
       result = gwt.result()

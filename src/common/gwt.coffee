@@ -69,6 +69,7 @@ configure = ({exports, options}) ->
         when: -> describeScenario(spec(), {only, counts}).when arguments...
         then: -> describeScenario(spec(), {only, counts}).then arguments...
         tap: -> describeScenario(spec(), {only, counts}).tap arguments...
+        call: -> describeScenario(spec(), {only, counts}).call arguments...
         verifySpecHasBeenCovered: ->
           it 'Verify that all descriptions in the specification have been covered', ->
             uncovered = counts.getUncovered()
@@ -95,6 +96,7 @@ configure = ({exports, options}) ->
       THEN: Object.keys(spec.THEN or {})
       WHEN: Object.keys(spec.WHEN or {})
       TAP: Object.keys(spec.TAP or {})
+      CALL: Object.keys(spec.TAP or {})
 
     counts = {GIVEN: {}, WHEN: {}, THEN: {}, TAP: {}}
 
@@ -109,6 +111,9 @@ configure = ({exports, options}) ->
         counts.THEN[description] ?= 0
         counts.THEN[description]++
       TAP: called: (description) ->
+        counts.TAP[description] ?= 0
+        counts.TAP[description]++
+      CALL: called: (description) ->
         counts.TAP[description] ?= 0
         counts.TAP[description]++
       getUncovered: ->
@@ -244,7 +249,7 @@ configure = ({exports, options}) ->
           chains[chains.length - 1].push(thenFn: -> spec.done?())
 
           chains.forEach (chain, chainsIndex) ->
-            bddIt "#{_.find(chain, (c) -> c.description).description}", (done) ->
+            bddIt "#{_.find(chain, (c) -> c.description)?.description ? ''}", (done) ->
               chain.forEach ({thenFn}) -> promise = promise.then(thenFn)
               promise
                 .then(-> done())
