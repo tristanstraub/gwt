@@ -1,4 +1,4 @@
-* Given, when, then
+* Given, when, then V1.3.1-alpha
 
 Behaviour driven development for nodejs.
 
@@ -27,10 +27,6 @@ the order of execution of these steps is declared:
 
 See how `this` is bound to a context object that is passed between
 each given/when/then step. Store shared data against `this`.
-
-NOTE: In version 0.x, context is a new object in each step, with each key/value pair copied
-across to the new context, which is provided to the subsequent
-step. (See below). Version 1.x shared context.
 
 *** Building a test
 
@@ -78,16 +74,8 @@ are used to generate descriptions for `it` blocks.
 
 ** Context
 
-Each step has access to a context object, via `this`, which is copied
-from step to step.
-
-CAVEAT: Each step has its own context object, with values from
-previous contexts copied across. This creates unexpected behaviour
-when trying to set values inside the context from inside a closure.
-
-If you create a function within a step, and call it later, its lexical scope points to an old context.
-You can retrieve the latest context through the function `getContext`
-held within each context object.
+Each step has access to a context object, via `this`, which is shared
+between all steps attached to a runner.
 
 *** Normal use of context, without lexical closures:
 
@@ -97,7 +85,7 @@ held within each context object.
       @bar = 'x'
 
     WHEN: 'an action is taken': ->
-      assert.equal @bar, 'x', 'Set in the wrong context' # -> PASS
+      assert.equal @bar, 'x', 'Context not shared' # -> PASS
 
   steps
     .given 'a given'
@@ -105,46 +93,6 @@ held within each context object.
     .run (err) -> ...
 #+END_SRC
 
-*** Writing to a previous context object does not carry over to the rest:
-
-#+BEGIN_SRC coffee
-  steps = gwt.steps
-    GIVEN: 'a given': ->
-      context = this
-      @setBar = ->
-        context.bar = 'x'
-
-    WHEN: 'an action is taken': ->
-      @setBar()
-      assert.equal @bar, 'x', 'Set in the wrong context' # -> ERROR
-
-  steps
-    .given 'a given'
-    .when 'an action is taken'
-    .run (err) -> ...
-#+END_SRC
-
-*** Using `getContext` from within closures to retrieve the current context
-
-To get this to work, use getContext, which returns the current
-context.
-
-#+BEGIN_SRC coffee
-  steps = gwt.steps
-    GIVEN: 'a given': ->
-      context = this
-      @setBar = ->
-        context.getContext().bar = 'x'
-
-    WHEN: 'an action is taken': ->
-      @setBar()
-      assert.equal @bar, 'x', 'Set in the wrong context' # -> PASS
-
-  steps
-    .given 'a given'
-    .when 'an action is taken'
-    .run (err) -> ...
-#+END_SRC
 ** Asynchronous steps
 
 *** Steps can return promises:
