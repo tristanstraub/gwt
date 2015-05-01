@@ -108,7 +108,7 @@ be used to chain onto the following steps.
       setTimeout (-> deferred.resolve()), 1000
       return deferred.promise
 
-  steps.run()
+  steps.given('a precondition').run()
 #+END_SRC
 
 *** Steps can use callbacks:
@@ -122,8 +122,24 @@ will resume execution of following steps when it is called.
     GIVEN: 'a precondition': -> (cb) ->
       setTimeout (-> cb()), 1000
 
-  steps.run()
+  steps.given('a precondition').run()
 #+END_SRC
+*** Steps can return runners:
+
+If the return value of a step is a runner, it will
+be used to chain onto the same context.
+
+#+BEGIN_SRC coffee
+  nestedSteps = gwt.steps
+    GIVEN: 'nested step': ->
+
+  steps = gwt.steps
+    GIVEN: 'a precondition': ->
+      return nestedSteps.given('nested step')
+
+  steps.given('a precondition').run()
+#+END_SRC
+
 ** Results can be retrieved from and passed back into steps
 
 `gwt.result()` produces a placeholder that carries information via
