@@ -20,6 +20,11 @@ class Result
   set: (@value) ->
     @overriden = true
 
+hasNestedResults = (result) ->
+  for rkey, r of result
+    if r instanceof Result then return true
+  return false
+
 buildGwt = ({options}) ->
   exports = {}
 
@@ -384,10 +389,15 @@ buildGwt = ({options}) ->
             if result instanceof Result
               assert result instanceof Result, 'Result must be created with bdd.result()'
               result.setInContext results, lastResultValue
-            else
+            else if hasNestedResults(result)
               for rkey, r of result
                 assert r instanceof Result, 'Subresult isnt bdd.result()'
                 r.setInContext results, lastResultValue[rkey]
+            else
+              for key in Object.keys(result)
+                delete result[key]
+
+              _.extend result, lastResultValue
 
             crossCombineResults.setInContext context, results
             context

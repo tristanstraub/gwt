@@ -311,6 +311,34 @@ describe 'gwt/v1', ->
         assert steps.THEN['with the result'].called
         done()
 
+
+  describe 'with resultTo', ->
+    feature = (result1, result2) ->
+      return declareStepsAndScenario
+        steps:
+          GIVEN: {}
+          WHEN: 'something is done ${action}': ({@action}) ->
+            return {name: "(#{@action})"}
+          THEN: 'with the result': sinon.spy ({result1, result2}) ->
+            assert.deepEqual result1, {name: "(two)"}
+            assert.deepEqual result2, {name: "(three)"}
+
+        scenario: (runner) ->
+          runner
+            .when('something is done ${action}', action: 'two').resultTo(result1)
+            .when('something is done ${action}', action: 'three').resultTo(result2)
+            .then 'with the result', ({result1, result2})
+
+    it 'should empty and extend object if resultTo param isnt a Result instance', (done) ->
+      ce = cbw done
+      myResult = {ok: 2}
+      ({steps} = feature(result = myResult, result2 = gwt.result())).runWithIt ce ->
+        assert steps.THEN['with the result'].called
+
+        assert.deepEqual myResult, {name: '(two)'}, 'Result not overwritten'
+        done()
+
+
   describe 'with resultTo nested', ->
     feature = (result1, result2) ->
       return declareStepsAndScenario
