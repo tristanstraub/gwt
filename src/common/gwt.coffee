@@ -6,33 +6,30 @@ assert = require 'assert'
 I = require 'immutable'
 uuid = require 'node-uuid'
 
-# Private configure method, used by different versions of gwt
-configure = ({exports, options}) ->
-  assert exports, 'Exports object required'
+class Result
+  constructor: (@id) ->
+    assert @id, 'Result id not given'
+    @value = null
+
+  getFromContext: (context) ->
+    return if @overriden then @value else context[@id]
+
+  setInContext: (context, value) ->
+    context[@id] = value
+
+  set: (@value) ->
+    @overriden = true
+
+buildGwt = ({options}) ->
+  exports = {}
+
   assert options, 'Options object required'
 
   configOptions = options
 
-  # options.sharedContext : when true, context is shared across combine
-
-  class Result
-    constructor: (@id) ->
-      assert @id, 'Result id not given'
-      @value = null
-
-    getFromContext: (context) ->
-      return if @overriden then @value else context[@id]
-
-    setInContext: (context, value) ->
-      context[@id] = value
-
-    set: (@value) ->
-      @overriden = true
-
   # Public configure method
   exports.configure = ({it: bddIt}) ->
-    return configure {
-      exports
+    return buildGwt {
       options: _.extend({}, configOptions, {bddIt: configOptions.bddIt ? bddIt})
     }
 
@@ -125,7 +122,7 @@ configure = ({exports, options}) ->
     }
 
   isRunner = (fn) ->
-    return fn._isRunner
+    return fn?._isRunner
 
   buildDescription = (fullDescription = '') ->
     given: (rest, args) ->
@@ -193,7 +190,13 @@ configure = ({exports, options}) ->
           newContext = _.extend context, extraContext
 
         # resolve promises contained in args. Use inplace replacement for the moment.
-        Q(fn.apply newContext, resolveResultArray(crossCombineResults.getFromContext(context) ? {}, args)).then (result) ->
+        resultWrapped = fn.apply newContext, resolveResultArray(crossCombineResults.getFromContext(context) ? {}, args)
+
+        resultToUnwrap = if isRunner(resultWrapped) then {_runner: resultWrapped} else resultWrapped
+
+        Q(resultToUnwrap).then (thenResult) ->
+          result = if thenResult?._runner then thenResult._runner else thenResult
+
           nextStep = (result) ->
             # Pipe result to resultTo
             lastResult.setInContext(newContext, result)
@@ -201,7 +204,9 @@ configure = ({exports, options}) ->
             # fn mutated context
             newContext
 
-          if typeof result is 'function'
+          if isRunner(result)
+            result.run(world: newContext).then nextStep
+          else if typeof result is 'function'
             Q.denodeify(result)().then nextStep
           else
             nextStep result
@@ -310,7 +315,7 @@ configure = ({exports, options}) ->
             deferred.resolve context
             return buildPromiseChain {promise: deferred.promise, chain, descriptionBuilder, bddIt, multipleIt}
 
-          bodyFn()
+          return bodyFn()
       }
 
     bdd = (descriptionBuilder, promiseBuilder, options) ->
@@ -320,6 +325,7 @@ configure = ({exports, options}) ->
       {skippedUntilHere} = options
 
       run = (options, done) ->
+        assert !done or typeof(done) is 'function', 'Done isnt a function'
         {bddIt, multipleIt, world} = options ? {}
 
         # run/done override config options
@@ -338,10 +344,12 @@ configure = ({exports, options}) ->
           return
         else
           {finish, fail} = handlers done
-          return testBodyFn()
+          runResult = testBodyFn()
             .then(finish)
             .then(-> spec.done?())
             .fail(fail)
+
+          return runResult
 
 
       _isRunner: true
@@ -351,8 +359,20 @@ configure = ({exports, options}) ->
       descriptionBuilder: descriptionBuilder
       skippedUntilHere: skippedUntilHere
 
-      run: ([options]..., cb) ->
-        options ?= {}
+      run: (args...) ->
+        # run(options), run(options, cb), run(cb)
+        assert !cb or typeof(cb) is 'function', 'Cb is not a function'
+
+        options = {}
+        cb = null
+
+        if typeof args[0] is 'function'
+          # run(cb)
+          cb = args[0]
+        else
+          # run(options, cb), run(options)
+          [options, cb] = args
+
         run options, cb
 
       resultTo: (result) ->
@@ -450,4 +470,4 @@ configure = ({exports, options}) ->
 
   return exports
 
-module.exports = (options) -> configure(exports: {}, options: options)
+module.exports = (options) -> buildGwt(options: options)

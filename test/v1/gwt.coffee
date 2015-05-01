@@ -887,6 +887,32 @@ describe 'gwt/v1', ->
         assert steps.GIVEN['a condition ${condition}'].calledWith condition: 'one'
         done()
 
+    it 'should return a promise when no callback is given (direct call)', (done) ->
+      result = gwt.steps(GIVEN: 'test': ->).given('test').run()
+      assert result.then
+      done()
+
+    it 'should return a promise when no callback is given (direct call) with resultTo', (done) ->
+      placeholder = gwt.result()
+
+      definitions =
+        WHEN:
+          'test': sinon.spy ({thing}) ->
+            assert.equal thing, 2
+            return 1
+
+        THEN:
+          'placeholder value': sinon.spy (value) ->
+            assert.equal value, 1
+
+      result = gwt.steps(definitions).when('test', {thing: 2}).resultTo(placeholder).then('placeholder value', placeholder).run()
+        .then ->
+          assert result.then, 'Result isnt a promise'
+          assert definitions.WHEN['test'].called
+          assert definitions.THEN['placeholder value'].called
+          done()
+        .fail done
+
   describe 'runner.run() errors', ->
     feature = ->
       steps:
@@ -1204,6 +1230,87 @@ describe 'gwt/v1', ->
 
       test ->
         assert stepsDef.GIVEN['test'].calledOnce, 'test step not called'
+
+
+
+  describe 'run()', ->
+    it 'should return promise even after configure', ->
+      test = null
+      myIt = sinon.spy (description, fn) ->
+        test = fn
+
+      stepsDef = GIVEN: 'test': sinon.spy ->
+
+      # Configure seems to be poisoning further calls
+      gwt.configure(it: myIt).steps(stepsDef).given('test').done()
+
+      topValues = {one: 1}
+
+      def1 =
+        WHEN:
+          'test': (testValues) ->
+            assert testValues, 'Not test values passed'
+
+      promise = gwt.steps(def1).when('test', topValues).run()
+      assert promise, 'Promise not returned'
+
+
+
+  describe 'step function can return runner', ->
+    it 'should use same context as parent', (done) ->
+      topValues = {one: 1}
+
+      def2 =
+        THEN:
+          'do nested': sinon.spy ({nestedValues} = {}) ->
+            # TODO strengthen this assertion to "assert.equal"
+            assert.deepEqual nestedValues, topValues
+            assert.equal @firstValue, 'ok', 'Context doesnt match'
+
+      nestedSteps = gwt.steps(def2)
+
+      def1 =
+        WHEN:
+          'test': sinon.spy (testValues) ->
+            assert testValues, 'Not test values passed'
+
+            @firstValue = 'ok'
+
+            nestedSteps.then('do nested', {nestedValues: testValues})
+
+      gwt.steps(def1).when('test', topValues).run()
+        .then ->
+          assert def1.WHEN['test'].called, '`test` not called'
+          assert def2.THEN['do nested'].called, '`do nested` not called'
+          done()
+        .fail done
+
+
+  describe 'step function can return runner', ->
+    it 'should not chew up nested errors', (done) ->
+      topValues = {one: 1}
+
+      def2 =
+        THEN:
+          'do nested': sinon.spy ({nestedValues} = {}) ->
+            # TODO strengthen this assertion to "assert.equal"
+            throw Error 'nested error'
+
+      nestedSteps = gwt.steps(def2)
+
+      def1 =
+        WHEN:
+          'test': sinon.spy (testValues) ->
+            assert testValues, 'Not test values passed'
+
+            @firstValue = 'ok'
+
+            nestedSteps.then('do nested', {nestedValues: testValues})
+
+      gwt.steps(def1).when('test', topValues).run()
+        .fail (err) ->
+          assert /nested error/.test err
+          done()
 
 
 createRunner = ->
