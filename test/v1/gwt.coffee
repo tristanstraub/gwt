@@ -1272,7 +1272,8 @@ describe 'gwt/v1', ->
       def1 =
         WHEN:
           'test': sinon.spy (testValues) ->
-            assert testValues, 'Not test values passed'
+            # TODO strengthen this assertion to "assert.equal"
+            assert.deepEqual testValues, topValues, 'Not test values passed'
 
             @firstValue = 'ok'
 
