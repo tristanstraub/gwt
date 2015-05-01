@@ -147,6 +147,22 @@ the context across steps, but provides us with an external reference.
     .run (err) ->
 #+END_SRC
 
+*** resultTo(object) will overwrite object
+
+#+BEGIN_SRC coffee
+  baz  = {}
+
+  steps = gwt.steps
+    WHEN: 'baz is created': ->
+      return foo: 'xyz'
+
+  steps
+    .when('baz is created').resultTo(baz)
+    .run (err) ->
+      assert.deepEqual baz, {foo: 'xyz'} # passes
+#+END_SRC
+
+
 *** Multiple results can be passed into steps
 
 #+BEGIN_SRC coffee
