@@ -19,7 +19,8 @@
     "immutable": "^3.7.0",
     "lodash": "^3.5.0",
     "node-uuid": "^1.4.3",
-    "q": ">=1.0.1"
+    "q": ">=1.0.1",
+    "ramda": "^0.13.0"
   },
   "devDependencies": {
     "coffee-errors": "^0.8.6",
