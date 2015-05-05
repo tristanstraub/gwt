@@ -311,6 +311,80 @@ describe 'gwt/v1', ->
         assert steps.THEN['with the result'].called
         done()
 
+  describe 'resultTo() with gwt.configure(proxyResult: true)', ->
+    it 'should allow result object to be used as a proxy to the actual result', (done) ->
+      myGwt = gwt.configure(proxyResult: true)
+
+      thingResult = myGwt.result()
+
+      myGwt.configure(proxyResult: true).steps(steps =
+        GIVEN:
+          'a thing': sinon.spy ->
+            return {aThing: 1}
+        THEN:
+          'the thing': sinon.spy ({thing}) ->
+            assert.deepEqual thing, {aThing: 1}
+            assert.deepEqual thingResult, {aThing: 1}
+
+      ).given('a thing').resultTo(thingResult).then('the thing', {thing: thingResult}).run()
+      .then ->
+        assert steps.GIVEN['a thing'].calledOnce
+        assert steps.THEN['the thing'].calledOnce
+        done()
+      .fail done
+
+    it 'should allow result object to be used as a proxy to the actual result on the second resultTo()', (done) ->
+      myGwt = gwt.configure(proxyResult: true)
+
+      thingResult = myGwt.result()
+
+      myGwt.steps(steps =
+        GIVEN:
+          'a thing': sinon.spy ->
+            return {aThing: 1}
+        WHEN:
+          'the something was done': ->
+            return {anotherThing: 2}
+
+        THEN:
+          'the thing': sinon.spy ({thing}) ->
+            assert.deepEqual thing, {anotherThing: 2}
+            assert.deepEqual thingResult, {anotherThing: 2}
+
+      ).given('a thing').resultTo(thingResult)
+        .when('the something was done').resultTo(thingResult)
+        .then('the thing', {thing: thingResult}).run()
+      .then ->
+        assert steps.GIVEN['a thing'].calledOnce
+        assert steps.THEN['the thing'].calledOnce
+        done()
+      .fail done
+
+    it 'should allow result object to be used as a proxy to the actual result on the second resultTo()', (done) ->
+      thingResult = gwt.result()
+
+      gwt.steps(steps =
+        GIVEN:
+          'a thing': sinon.spy ->
+            return {aThing: 1}
+        WHEN:
+          'the something was done': ->
+            return {anotherThing: 2}
+
+        THEN:
+          'the thing': sinon.spy ({thing}) ->
+            assert.deepEqual thing, {anotherThing: 2}
+            assert.deepEqual thingResult, {anotherThing: 2}
+
+      ).given('a thing').resultTo(thingResult)
+        .when('the something was done').resultTo(thingResult)
+        .then('the thing', {thing: thingResult}).run()
+      .then ->
+        assert steps.GIVEN['a thing'].calledOnce
+        assert steps.THEN['the thing'].calledOnce
+        done()
+      .fail done
+
 
   describe 'with resultTo', ->
     feature = (result1, result2) ->

@@ -6,18 +6,76 @@ assert = require 'assert'
 I = require 'immutable'
 uuid = require 'node-uuid'
 
+# Prefix Result attributes, so that they don't clash with proxied attributes
+# generated during resultTo()
+
+
+hideAttributes = (object, keys...) ->
+  attributes = {}
+
+  keys.forEach (attr) ->
+    if !Object.getOwnPropertyDescriptor(object, attr)
+      Object.defineProperty object, attr,
+        get: -> attributes[attr]
+        set: (value) -> attributes[attr] = value
+
+Keyword = ->
+  id = uuid.v4()
+  get: (object) ->
+    hideAttributes(object, id)
+    object[id]
+
+  set: (object, value) ->
+    hideAttributes(object, id)
+    object[id] = value
+
+withContext = (object, keyword, fn) ->
+  if !keyword.get(object)
+    keyword.set(object, {})
+
+  fn.apply keyword.get(object)
+
+proxyOnSelf = (container, object) ->
+  keys = Object.keys(object)
+
+  for key in keys
+    Object.defineProperty container, key,
+      get: -> object[key]
+      enumerable: true
+      configurable: true
+
+  return keys
+
+
+clearObjectProperties = (container, keys) ->
+  for key in keys
+    delete container[key]
+
 class Result
-  constructor: (@id) ->
+  @kwContext = Keyword()
+
+  constructor: (id, options = {}) -> withContext this, Result.kwContext, ->
+    {@proxyResult} = options
+    @id = id
+
     assert @id, 'Result id not given'
     @value = null
 
-  getFromContext: (context) ->
+  getFromContext: (context) -> withContext this, Result.kwContext, ->
     return if @overriden then @value else context[@id]
 
   setInContext: (context, value) ->
-    context[@id] = value
+    self = this
+    withContext this, Result.kwContext, ->
+      context[@id] = value
+      if @proxyResult
+        if typeof(value) is 'object' and !Array.isArray(value)
+          if @proxyAttributeKeys
+            clearObjectProperties self, @proxyAttributeKeys
+          @proxyAttributeKeys = proxyOnSelf self, value
 
-  set: (@value) ->
+  set: (value) -> withContext this, Result.kwContext, ->
+    @value = value
     @overriden = true
 
 hasNestedResults = (result) ->
@@ -33,13 +91,13 @@ buildGwt = ({options}) ->
   configOptions = options
 
   # Public configure method
-  exports.configure = ({it: bddIt}) ->
+  exports.configure = ({it: bddIt, proxyResult}) ->
     return buildGwt {
-      options: _.extend({}, configOptions, {bddIt: configOptions.bddIt ? bddIt})
+      options: _.extend({}, configOptions, {proxyResult, bddIt: configOptions.bddIt ? bddIt})
     }
 
-  exports.result = makeResult = (id = uuid.v4())->
-    return new Result(id)
+  exports.result = makeResult = (id = uuid.v4()) ->
+    return new Result(id, {proxyResult: configOptions.proxyResult})
 
   exports.combine = (leftRunner, rest...) ->
     assert leftRunner, 'left runner not defined'
