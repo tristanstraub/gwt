@@ -224,6 +224,24 @@ the context across steps, but provides us with an external reference.
     .run (err) -> ...
 #+END_SRC
 
+*** Results will act as proxies to the returned object
+If you wish to access the value of the resultTo() object
+directly, you can use gwt.result() placeholder as a proxy in place of
+the actual object.
+
+#+BEGIN_SRC coffee
+  value = gwt.result()
+
+  steps = gwt.steps
+    GIVEN: 'a value': ->
+      return {aThing: 1}
+
+  steps
+    .given('a value').resultTo(value)
+    .run().then ->
+      assert.deepEqual value, {aThing: 1}
+#+END_SRC
+
 *** Results can be permanently overriden with `set`
 
 If you call `result.set` with a value, any time it is passed
