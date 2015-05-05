@@ -333,6 +333,31 @@ describe 'gwt/v1', ->
         done()
       .fail done
 
+    it 'should allow a nested result set to proxy multiple object results', (done) ->
+      thingResult = gwt.result()
+      otherThingResult = gwt.result()
+
+      gwt.configure(proxyResult: true).steps(steps =
+        GIVEN:
+          'a thing': sinon.spy ->
+            return {thing: {aThing: 1}, anotherThing: {otherThing: 2}}
+
+        THEN:
+          'the thing': sinon.spy ({thing, anotherThing}) ->
+            assert.deepEqual thing, {aThing: 1}
+            assert.deepEqual thingResult, {aThing: 1}
+            assert.deepEqual anotherThing, {otherThing: 2}
+            assert.deepEqual otherThingResult, {otherThing: 2}
+
+      ).given('a thing').resultTo({thing: thingResult, anotherThing: otherThingResult})
+      .then('the thing', {thing: thingResult, anotherThing: otherThingResult}).run()
+      .then ->
+        assert steps.GIVEN['a thing'].calledOnce
+        assert steps.THEN['the thing'].calledOnce
+        done()
+      .fail done
+
+
     it 'should allow result object to be used as a proxy to the actual result on the second resultTo()', (done) ->
       myGwt = gwt.configure(proxyResult: true)
 
