@@ -312,6 +312,28 @@ describe 'gwt/v1', ->
         done()
 
   describe 'resultTo() with gwt.configure(proxyResult: true)', ->
+    it 'should not override default configuration', (done) ->
+      myGwt = gwt.configure({})
+
+      thingResult = myGwt.result()
+
+      myGwt.configure(proxyResult: true).steps(steps =
+        GIVEN:
+          'a thing': sinon.spy ->
+            return {aThing: 1}
+        THEN:
+          'the thing': sinon.spy ({thing}) ->
+            assert.deepEqual thing, {aThing: 1}
+            assert.deepEqual thingResult, {aThing: 1}
+
+      ).given('a thing').resultTo(thingResult).then('the thing', {thing: thingResult}).run()
+      .then ->
+        assert steps.GIVEN['a thing'].calledOnce
+        assert steps.THEN['the thing'].calledOnce
+        done()
+      .fail done
+
+
     it 'should allow result object to be used as a proxy to the actual result', (done) ->
       myGwt = gwt.configure(proxyResult: true)
 

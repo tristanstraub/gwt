@@ -93,7 +93,7 @@ buildGwt = ({options}) ->
   # Public configure method
   exports.configure = ({it: bddIt, proxyResult}) ->
     return buildGwt {
-      options: _.extend({}, configOptions, {proxyResult, bddIt: configOptions.bddIt ? bddIt})
+      options: _.extend({}, configOptions, {proxyResult: proxyResult ? configOptions.proxyResult, bddIt: configOptions.bddIt ? bddIt})
     }
 
   exports.result = makeResult = (id = uuid.v4()) ->
