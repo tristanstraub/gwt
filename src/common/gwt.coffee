@@ -38,7 +38,7 @@ withContext = (object, keyword, fn) ->
 proxyOnSelf = (container, object) ->
   keys = Object.keys(object)
 
-  for key in keys
+  keys.forEach (key) ->
     Object.defineProperty container, key,
       get: -> object[key]
       enumerable: true

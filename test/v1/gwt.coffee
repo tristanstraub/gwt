@@ -411,6 +411,28 @@ describe 'gwt/v1', ->
       .fail done
 
 
+    it 'should have different values for each attribute in objects with multiple attributes', (done) ->
+      thingResult = gwt.result()
+
+      gwt.steps(steps =
+        GIVEN:
+          'a thing': sinon.spy ->
+            return {aThing: 1, aThingTwo: 3}
+
+        THEN:
+          'the thing': sinon.spy ({thing}) ->
+            assert.deepEqual thing, {aThing: 1, aThingTwo: 3}
+            assert.deepEqual thingResult, {aThing: 1, aThingTwo: 3}
+
+      ).given('a thing').resultTo(thingResult)
+        .then('the thing', {thing: thingResult}).run()
+      .then ->
+        assert steps.GIVEN['a thing'].calledOnce
+        assert steps.THEN['the thing'].calledOnce
+        done()
+      .fail done
+
+
   describe 'with resultTo', ->
     feature = (result1, result2) ->
       return declareStepsAndScenario
