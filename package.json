@@ -1,6 +1,6 @@
 {
   "name": "given-when-then",
-  "version": "1.3.2-alpha",
+  "version": "1.3.3-alpha",
   "description": "Given, when, then",
   "main": "lib/index.js",
   "scripts": {
