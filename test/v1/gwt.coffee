@@ -1179,6 +1179,19 @@ describe 'gwt/v1', ->
           assert !defsRunner.WHEN['something happens'].calledOnce
           assert !defsRunner.THEN['expectations'].calledOnce
 
+        it 'should not run any steps, when skipUntilHere() is called at the end', ->
+          defsRunner =
+            WHEN: 'something happens': sinon.spy ->
+
+          runner = gwt.steps defsRunner
+
+          runner
+            .when('something happens')
+            .skipUntilHere()
+            .done (it: (description, fn) -> fn())
+
+          assert !defsRunner.WHEN['something happens'].calledOnce
+
         describe 'within nested steps', ->
           it 'should run only those steps upto and after the skipUntilHere() call', (done) ->
             nestedDefs =
