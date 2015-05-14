@@ -314,7 +314,10 @@ buildGwt = ({options}) ->
           if currentChain.length
             chains = chains.concat([currentChain])
 
-          chains[chains.length - 1].push(thenFn: -> spec.done?())
+          if chains.length
+            chains[chains.length - 1].push(thenFn: -> spec.done?())
+          else
+            chains = chains.concat([thenFn: -> spec.done?()])
 
           chains.forEach (chain, chainsIndex) ->
             bddIt "#{_.find(chain, (c) -> c.description)?.description ? ''}", (done) ->

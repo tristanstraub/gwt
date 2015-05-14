@@ -1138,29 +1138,86 @@ describe 'gwt/v1', ->
 
   describe 'runner.skipUntilHere()', ->
     describe 'without combine', ->
-      feature = ->
-        return declareStepsAndScenario
-          steps:
-            GIVEN: 'a condition': sinon.spy ->
+
+      describe 'after given', ->
+        feature = ->
+          return declareStepsAndScenario
+            steps:
+              GIVEN: 'a condition': sinon.spy ->
+              WHEN: 'something happens': sinon.spy ->
+              THEN: 'expect this': sinon.spy ->
+
+            scenario: (runner) ->
+              runner
+                .given('a condition')
+                .skipUntilHere()
+                .when('something happens')
+                .then('expect this')
+
+        it 'should run only those steps upto and after the skipUntilHere() call', (done) ->
+          ce = cbw done
+          ({steps} = feature()).run ce ->
+            assert !steps.GIVEN['a condition'].called
+            assert steps.WHEN['something happens'].calledOnce
+            assert steps.THEN['expect this'].calledOnce
+            done()
+
+      describe 'from done()', ->
+        it 'should run only those steps upto and after the skipUntilHere() call', ->
+          defsRunner =
             WHEN: 'something happens': sinon.spy ->
-            THEN: 'expect this': sinon.spy ->
+            THEN: 'expectations': sinon.spy ->
 
-          scenario: (runner) ->
+          runner = gwt.steps defsRunner
+
+          runner
+            .when('something happens')
+            .skipUntilHere()
+            .then('expectations')
+            .done (it: (description, fn) -> fn())
+
+          assert !defsRunner.WHEN['something happens'].calledOnce
+          assert !defsRunner.THEN['expectations'].calledOnce
+
+        describe 'within nested steps', ->
+          it 'should run only those steps upto and after the skipUntilHere() call', (done) ->
+            nestedDefs =
+              WHEN: 'nested something happens': sinon.spy ->
+              THEN: 'nested expectations': sinon.spy ->
+            nested = gwt.steps nestedDefs
+
+            defsRunner =
+              WHEN: 'something happens': sinon.spy ->
+              THEN: 'expectations':
+                nested
+                  .when('nested something happens')
+                  .skipUntilHere()
+                  .then('nested expectations')
+
+            runner = gwt.steps defsRunner
+
+            tests = []
+
             runner
-              .given('a condition')
-              .skipUntilHere()
               .when('something happens')
-              .then('expect this')
+              .then('expectations')
+              .done (it: (description, fn) ->
+                tests.push fn)
 
-      it 'should run only those steps upto and after the skipUntilHere() call', (done) ->
-        ce = cbw done
-        ({steps} = feature()).run ce ->
-          assert !steps.GIVEN['a condition'].called
-          assert steps.WHEN['something happens'].calledOnce
-          assert steps.THEN['expect this'].calledOnce
-          done()
+            deferred = Q.defer()
+            promise = tests.reduce (promise, fn) ->
+              promise.then fn
+            , deferred.promise
 
+            deferred.resolve()
 
+            promise.then ->
+              assert !defsRunner.WHEN['something happens'].calledOnce
+              assert !defsRunner.THEN['expectations'].calledOnce
+              assert !nestedDefs.WHEN['nested something happens'].calledOnce
+              assert nestedDefs.THEN['nested expectations']
+              done()
+            .fail done
 
     describe 'with combine and skip in first runner', ->
       features = ->
