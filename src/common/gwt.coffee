@@ -36,7 +36,7 @@ withContext = (object, keyword, fn) ->
   fn.apply keyword.get(object)
 
 proxyOnSelf = (container, object) ->
-  keys = Object.keys(object)
+  keys = Object.keys(object or {})
 
   keys.forEach (key) ->
     Object.defineProperty container, key,
